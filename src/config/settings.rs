@@ -32,6 +32,20 @@ pub struct SummarizationConfig {
     pub max_tokens: u32,
     pub enable_daily_summary: bool,
     pub enable_extraction_hints: bool,
+    /// Time to auto-digest previous day's sessions (format: "HH:MM", default: "06:00")
+    #[serde(default = "default_digest_time")]
+    pub digest_time: String,
+    /// Enable auto-digest of previous day's sessions on session start
+    #[serde(default = "default_auto_digest")]
+    pub auto_digest_enabled: bool,
+}
+
+fn default_digest_time() -> String {
+    "06:00".into()
+}
+
+fn default_auto_digest() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -70,6 +84,8 @@ impl Default for Config {
                 max_tokens: 4096,
                 enable_daily_summary: true,
                 enable_extraction_hints: true,
+                digest_time: "06:00".into(),
+                auto_digest_enabled: true,
             },
             hooks: HooksConfig {
                 enable_session_start: true,

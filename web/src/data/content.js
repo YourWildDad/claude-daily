@@ -1,0 +1,225 @@
+export const steps = [
+  {
+    id: 'intro',
+    title: 'What is Daily?',
+    content: `Daily is a context archive system for Claude Code. It automatically records and summarizes your AI-assisted coding sessions, transforming ephemeral conversations into persistent, searchable knowledge.`,
+    detail: 'Every interaction with Claude Code generates valuable insights - decisions made, problems solved, and lessons learned. Daily captures all of this automatically.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: false,
+      showCommands: false,
+      showTranscript: false,
+      showSummarizer: false,
+      showLog: false,
+      highlight: 'claude-code',
+      activeFlow: [],
+    }
+  },
+  {
+    id: 'claude-structure',
+    title: 'The ~/.claude Directory',
+    content: `Claude Code uses the ~/.claude directory for configuration and extensions. Daily integrates seamlessly by adding three key directories.`,
+    detail: '~/.claude/daily (logs), ~/.claude/hooks (lifecycle hooks), ~/.claude/commands (slash commands)',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: false,
+      showSummarizer: false,
+      showLog: true,
+      highlight: 'claude-dir',
+      activeFlow: [],
+    }
+  },
+  {
+    id: 'hooks-intro',
+    title: 'Hooks: The Magic Connection',
+    content: `Claude Code supports lifecycle hooks - scripts that run at specific moments. Daily registers hooks in ~/.claude/hooks/ for SessionStart and SessionEnd.`,
+    detail: 'When you run \`daily install\`, it creates hook scripts that trigger automatically during your Claude Code sessions.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: false,
+      showSummarizer: false,
+      showLog: true,
+      highlight: 'hooks',
+      activeFlow: ['claude-to-hooks'],
+    }
+  },
+  {
+    id: 'session-start',
+    title: 'Session Start Hook',
+    content: `When you begin a Claude Code session, the SessionStart hook fires. It creates today's log folder if it doesn't exist.`,
+    detail: 'The folder structure follows the pattern ~/.claude/daily/YYYY-MM-DD/. Each day gets its own directory.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: false,
+      showSummarizer: false,
+      showLog: true,
+      highlight: 'session-start',
+      activeFlow: ['hooks-to-log'],
+    }
+  },
+  {
+    id: 'session-work',
+    title: 'During Your Session',
+    content: `As you work with Claude Code, every message exchange is recorded in a transcript. This happens automatically - you don't need to do anything.`,
+    detail: 'The transcript contains your prompts, Claude\'s responses, tool usage, file edits, and more. It\'s a complete record of the session.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: false,
+      showLog: true,
+      highlight: 'transcript',
+      activeFlow: ['claude-to-transcript'],
+    }
+  },
+  {
+    id: 'session-end',
+    title: 'Session End Trigger',
+    content: `When you exit Claude Code (Ctrl+D or typing exit), the SessionEnd hook activates. This is where the magic happens.`,
+    detail: 'The hook reads input from Claude Code containing the transcript path, working directory, and exit reason.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: false,
+      showLog: true,
+      highlight: 'session-end',
+      activeFlow: ['transcript-to-hooks'],
+    }
+  },
+  {
+    id: 'background-job',
+    title: 'Background Processing',
+    content: `The SessionEnd hook spawns a background job for summarization. This allows Claude Code to exit immediately without blocking.`,
+    detail: 'The command \`daily summarize --foreground\` runs as a detached process. Job metadata is tracked in ~/.claude/daily/jobs/',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'summarizer',
+      activeFlow: ['hooks-to-summarizer'],
+    }
+  },
+  {
+    id: 'ai-summarization',
+    title: 'AI-Powered Summarization',
+    content: `The summarizer invokes Claude CLI to analyze your transcript. It extracts key decisions, learnings, and potential reusable skills.`,
+    detail: 'Claude parses the transcript and generates structured JSON with summary, decisions, learnings, and skill hints.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'summarizer-active',
+      activeFlow: ['summarizer-thinking'],
+    }
+  },
+  {
+    id: 'session-log',
+    title: 'Session Log Created',
+    content: `The summarized content is written as a Markdown file in today's log folder. Each session gets its own file named after your working directory.`,
+    detail: 'The log includes: summary, key decisions, learnings, file changes, tool usage stats, and skill extraction hints. Sessions accumulate throughout the day.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'session-file',
+      activeFlow: ['summarizer-to-log'],
+    }
+  },
+  {
+    id: 'digest',
+    title: 'Digest: Consolidate Sessions',
+    content: `Sessions accumulate as individual files. The digest process consolidates them into a single daily.md - either manually via \`daily digest\` or automatically on next session start.`,
+    detail: 'Auto-digest triggers when: current time >= digest_time (default 06:00) AND yesterday has un-digested sessions. After digest, session files are removed.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'daily-file',
+      activeFlow: ['digest-flow'],
+    }
+  },
+  {
+    id: 'daily-summary',
+    title: 'Daily Summary',
+    content: `The daily.md file contains the consolidated summary of all sessions. It's generated during digest, providing a comprehensive overview of the day's work.`,
+    detail: 'Includes: overview of all work, consolidated insights, extracted skills, and reflections. Individual session files are cleaned up after digest.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'daily-file',
+      activeFlow: ['log-update'],
+    }
+  },
+  {
+    id: 'slash-commands',
+    title: 'Slash Commands',
+    content: `Daily installs custom slash commands in ~/.claude/commands/. Use /daily-view, /daily-get-skill, and more directly in Claude Code.`,
+    detail: 'Slash commands provide quick access to Daily features without leaving your Claude Code session.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'commands',
+      activeFlow: ['commands-flow'],
+    }
+  },
+  {
+    id: 'complete',
+    title: 'The Complete Cycle',
+    content: `Daily transforms your Claude Code sessions into a growing knowledge base. Sessions accumulate, then digest consolidates them into daily summaries.`,
+    detail: 'Start with \`daily init -i\` and \`daily install\`. Sessions archive automatically; digest runs manually or auto-triggers each morning.',
+    vizState: {
+      showClaudeCode: true,
+      showHooks: true,
+      showCommands: true,
+      showTranscript: true,
+      showSummarizer: true,
+      showLog: true,
+      highlight: 'all',
+      activeFlow: ['complete-flow'],
+    }
+  },
+];
+
+export const claudeStructure = [
+  { path: '~/.claude/', type: 'folder', level: 0 },
+  { path: 'daily/', type: 'folder', level: 1, desc: 'Log storage' },
+  { path: '2024-01-15/', type: 'folder', level: 2 },
+  { path: 'daily.md', type: 'file', level: 3 },
+  { path: 'fix-bug.md', type: 'file', level: 3 },
+  { path: 'jobs/', type: 'folder', level: 2 },
+  { path: 'hooks/', type: 'folder', level: 1, desc: 'Lifecycle hooks' },
+  { path: 'SessionStart.sh', type: 'file', level: 2 },
+  { path: 'SessionEnd.sh', type: 'file', level: 2 },
+  { path: 'commands/', type: 'folder', level: 1, desc: 'Slash commands' },
+  { path: 'daily-view.md', type: 'file', level: 2 },
+  { path: 'daily-get-skill.md', type: 'file', level: 2 },
+];

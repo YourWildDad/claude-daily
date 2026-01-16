@@ -1,31 +1,109 @@
 use anyhow::Result;
+use chrono::{Duration, Local};
 use colored::*;
+use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 
-use crate::config::load_config;
 use crate::archive::ArchiveManager;
+use crate::config::load_config;
 
-/// View archives
+/// View archives with interactive selection
 pub async fn run(date: Option<String>, summary_only: bool, list: bool) -> Result<()> {
     let config = load_config()?;
     let manager = ArchiveManager::new(config);
 
-    // Determine which date to view
-    let view_date = date.unwrap_or_else(|| {
-        chrono::Local::now().format("%Y-%m-%d").to_string()
-    });
+    // If date is provided, view that date directly
+    if let Some(view_date) = date {
+        return view_date_archive(&manager, &view_date, summary_only, list).await;
+    }
 
+    // Otherwise, show interactive date selection
+    let dates = manager.list_dates()?;
+
+    if dates.is_empty() {
+        println!("{}", "No archives found.".yellow());
+        return Ok(());
+    }
+
+    // Build display items with session counts
+    let items: Vec<String> = dates
+        .iter()
+        .map(|d| {
+            let sessions = manager.list_sessions(d).unwrap_or_default();
+            let count = sessions.len();
+            let label = format_date_label(d);
+            format!("{} {} ({} sessions)", d, label, count)
+        })
+        .collect();
+
+    let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select a date to view")
+        .items(&items)
+        .default(0)
+        .interact_opt()?;
+
+    match selection {
+        Some(idx) => {
+            let view_date = &dates[idx];
+            println!();
+            view_date_archive(&manager, view_date, summary_only, list).await
+        }
+        None => {
+            println!("{}", "Cancelled.".dimmed());
+            Ok(())
+        }
+    }
+}
+
+/// View today's archive
+pub async fn run_today(summary_only: bool, list: bool) -> Result<()> {
+    let config = load_config()?;
+    let manager = ArchiveManager::new(config);
+    let today = Local::now().format("%Y-%m-%d").to_string();
+    view_date_archive(&manager, &today, summary_only, list).await
+}
+
+/// View yesterday's archive
+pub async fn run_yesterday(summary_only: bool, list: bool) -> Result<()> {
+    let config = load_config()?;
+    let manager = ArchiveManager::new(config);
+    let yesterday = (Local::now() - Duration::days(1))
+        .format("%Y-%m-%d")
+        .to_string();
+    view_date_archive(&manager, &yesterday, summary_only, list).await
+}
+
+/// Format date with relative label (today, yesterday, etc.)
+fn format_date_label(date: &str) -> String {
+    let today = Local::now().format("%Y-%m-%d").to_string();
+    let yesterday = (Local::now() - Duration::days(1))
+        .format("%Y-%m-%d")
+        .to_string();
+
+    if date == today {
+        "(today)".green().to_string()
+    } else if date == yesterday {
+        "(yesterday)".cyan().to_string()
+    } else {
+        String::new()
+    }
+}
+
+/// View archive for a specific date
+async fn view_date_archive(
+    manager: &ArchiveManager,
+    date: &str,
+    summary_only: bool,
+    list: bool,
+) -> Result<()> {
     if list {
-        // List all sessions for the date
-        return list_sessions(&manager, &view_date).await;
+        return list_sessions(manager, date).await;
     }
 
     if summary_only {
-        // Show only the daily summary
-        return show_daily_summary(&manager, &view_date).await;
+        return show_daily_summary(manager, date).await;
     }
 
-    // Show full daily archive
-    show_full_archive(&manager, &view_date).await
+    show_full_archive(manager, date).await
 }
 
 async fn list_sessions(manager: &ArchiveManager, date: &str) -> Result<()> {

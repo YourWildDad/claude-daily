@@ -1,7 +1,9 @@
 use anyhow::Result;
-use chrono::Local;
+use chrono::{Local, Timelike};
 use std::fs;
+use std::process::{Command, Stdio};
 
+use crate::archive::ArchiveManager;
 use crate::config::load_config;
 use crate::hooks::read_hook_input;
 
@@ -69,6 +71,61 @@ _No sessions archived yet._
         eprintln!("[daily] Created daily directory: {}", daily_dir.display());
     }
 
+    // Check for auto-digest of previous day's sessions
+    if config.summarization.auto_digest_enabled {
+        check_auto_digest(&config);
+    }
+
     // Exit with 0 to allow session to continue
     Ok(())
+}
+
+/// Check if we should auto-digest yesterday's sessions
+fn check_auto_digest(config: &crate::config::Config) {
+    // Parse digest_time (format: "HH:MM")
+    let digest_time = &config.summarization.digest_time;
+    let parts: Vec<&str> = digest_time.split(':').collect();
+    if parts.len() != 2 {
+        return;
+    }
+
+    let (digest_hour, digest_minute) = match (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+        (Ok(h), Ok(m)) if h < 24 && m < 60 => (h, m),
+        _ => return,
+    };
+
+    let now = Local::now();
+    let current_minutes = now.hour() * 60 + now.minute();
+    let digest_minutes = digest_hour * 60 + digest_minute;
+
+    // Only trigger if we're past digest time
+    if current_minutes < digest_minutes {
+        return;
+    }
+
+    // Get yesterday's date
+    let yesterday = (now - chrono::Duration::days(1))
+        .format("%Y-%m-%d")
+        .to_string();
+
+    // Check if yesterday has un-digested sessions
+    let manager = ArchiveManager::new(config.clone());
+    if !manager.has_sessions(&yesterday) {
+        return;
+    }
+
+    eprintln!(
+        "[daily] Auto-digesting yesterday's sessions ({})...",
+        yesterday
+    );
+
+    // Spawn background digest process
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = Command::new(&exe)
+            .args(["digest", "--date", &yesterday, "--foreground"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn();
+    }
 }

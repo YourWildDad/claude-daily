@@ -139,21 +139,8 @@ async fn run_summarization(
     let archive_path = archive.save(config)?;
     eprintln!("[daily] Session archived: {}", archive_path.display());
 
-    // Update daily summary if enabled
-    if config.summarization.enable_daily_summary {
-        eprintln!("[daily] Updating daily summary...");
-
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        match engine.update_daily_summary(&today).await {
-            Ok(summary) => {
-                let summary_path = summary.save(config)?;
-                eprintln!("[daily] Daily summary updated: {}", summary_path.display());
-            }
-            Err(e) => {
-                eprintln!("[daily] Warning: Failed to update daily summary: {}", e);
-            }
-        }
-    }
+    // Note: Daily summary is now generated via `daily digest` command
+    // either manually or auto-triggered on session start
 
     eprintln!("[daily] Summarization complete!");
 

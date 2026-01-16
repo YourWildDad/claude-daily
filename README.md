@@ -2,132 +2,9 @@
 
 ![Daily](assets/logo.png)
 
-A context archive system for [Claude Code](https://claude.ai/code) that automatically records and summarizes your daily AI-assisted work sessions.
+English | [中文](README.zh-CN.md)
 
-## How It Works
-
-```mermaid
-flowchart TB
-    subgraph Claude Code
-        A[User exits session] -->|Ctrl+D / /clear / logout| B[Trigger SessionEnd Hook]
-    end
-
-    subgraph Daily Hook
-        B -->|stdin JSON| C[daily hook session-end]
-        C --> D{Check config<br/>enable_session_end}
-        D -->|disabled| E[Exit silently]
-        D -->|enabled| F[Generate task_name & job_id]
-        F --> G[Spawn background process]
-    end
-
-    subgraph Background Job
-        G -->|detached| H[daily summarize]
-        H --> I[Parse transcript.jsonl]
-        I --> J[Call Claude API]
-        J --> K[Generate session summary]
-        K --> L[Update daily.md]
-        L --> M[Mark job completed]
-    end
-
-    subgraph Storage
-        K --> N["~/.claude/daily/YYYY-MM-DD/"]
-        N --> O[session.md]
-        N --> P[daily.md]
-    end
-```
-
-### Workflow Steps
-
-1. **Session Start** - Hook creates daily folder structure (`~/.claude/daily/YYYY-MM-DD/`)
-2. **Session End** - Hook triggers background archival process (non-blocking)
-3. **Summarization** - Background job processes transcript via Claude API
-4. **Aggregation** - Updates daily summary with insights from all sessions
-
-## Hooks Architecture
-
-Daily integrates with Claude Code through the [Hooks System](https://docs.anthropic.com/en/docs/claude-code/hooks).
-
-### SessionEnd Hook Flow
-
-```mermaid
-sequenceDiagram
-    participant CC as Claude Code
-    participant Hook as daily hook session-end
-    participant Job as Background Job
-    participant API as Claude API
-    participant FS as File System
-
-    CC->>Hook: stdin JSON (session_id, transcript_path, reason)
-    Hook->>Hook: Validate config
-    Hook->>Hook: Generate job_id
-    Hook->>Job: Spawn detached process
-    Hook-->>CC: Exit immediately (non-blocking)
-
-    Job->>FS: Read transcript.jsonl
-    Job->>API: Summarize session
-    API-->>Job: Summary response
-    Job->>FS: Write session.md
-    Job->>FS: Update daily.md
-    Job->>FS: Mark job completed
-```
-
-### Hook Input Schema
-
-When Claude Code triggers the SessionEnd hook, it passes JSON via stdin:
-
-```json
-{
-  "session_id": "abc123",
-  "transcript_path": "/Users/you/.claude/projects/.../session.jsonl",
-  "cwd": "/your/project/path",
-  "hook_event_name": "SessionEnd",
-  "reason": "prompt_input_exit"
-}
-```
-
-### Session End Reasons
-
-| Reason              | Trigger                  | Archived |
-| ------------------- | ------------------------ | :------: |
-| `prompt_input_exit` | User presses Ctrl+D      |    ✅    |
-| `logout`            | User logs out            |    ✅    |
-| `clear`             | User runs /clear command |    ✅    |
-| `other`             | Other exit methods       |    ✅    |
-
-All exit reasons trigger archival to ensure complete session history.
-
-### Job Management
-
-Background jobs can be monitored and managed:
-
-```bash
-# List running/recent jobs
-daily jobs list
-
-# List all jobs (including completed)
-daily jobs list --all
-
-# View job logs
-daily jobs log <job_id>
-
-# Follow job logs in real-time
-daily jobs log <job_id> --follow
-
-# Kill a running job
-daily jobs kill <job_id>
-
-# Cleanup old jobs (default: 7 days)
-daily jobs cleanup
-```
-
-### Job Storage
-
-```
-~/.claude/daily/jobs/
-├── 20240115-143052-myproject-a1b2c3.json   # Job metadata
-├── 20240115-143052-myproject-a1b2c3.log    # Job output log
-└── ...
-```
+A context archive system for [Claude Code](https://claude.ai/code) that automatically records and summarizes your AI-assisted work sessions.
 
 ## Features
 
@@ -135,23 +12,16 @@ daily jobs cleanup
 - **Smart Summarization** - Background AI processing generates meaningful summaries
 - **Daily Insights** - Aggregates all sessions into actionable daily summary
 - **Skill Extraction** - Extract reusable skills and commands from sessions
-- **Terminal Viewer** - View archives directly in terminal with beautiful formatting
 
 ## Installation
 
-### Method 1: One-line Install (Recommended)
+### One-line Install (Recommended)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/oanakiaja/claude-daily/main/scripts/install.sh | bash
 ```
 
-### Method 2: Cargo Install
-
-```bash
-cargo install daily
-```
-
-### Method 3: Build from Source
+### Build from Source
 
 ```bash
 git clone https://github.com/oanakiaja/claude-daily.git
@@ -172,139 +42,96 @@ daily install
 daily view
 ```
 
+## How It Works
+
+```mermaid
+flowchart LR
+    A[Session End] --> B[Hook Triggered]
+    B --> C[Background Job]
+    C --> D[Parse Transcript]
+    D --> E[AI Summarization]
+    E --> F[Session Archive]
+    F --> G[Digest Trigger]
+    G --> H[Daily Summary]
+```
+
+1. **Session End** - Claude Code triggers SessionEnd hook
+2. **Background Job** - Non-blocking process spawned for summarization
+3. **AI Summarization** - Claude API processes transcript
+4. **Session Archive** - Individual session saved to `~/.claude/daily/{date}/{task}.md`
+5. **Digest** - Sessions are consolidated into `daily.md` via manual `daily digest` or auto-trigger
+
 ## Commands
 
-| Command                                  | Description                                    |
-| ---------------------------------------- | ---------------------------------------------- |
-| `daily init`                             | Initialize system and create storage directory |
-| `daily install`                          | Install Claude Code hooks and slash commands   |
-| `daily view`                             | View today's archive                           |
-| `daily view --date 2024-01-15`           | View archive for specific date                 |
-| `daily view --list`                      | List all sessions                              |
-| `daily view --summary-only`              | Show daily summary only                        |
-| `daily config --show`                    | Show current configuration                     |
-| `daily config --set-storage ~/path`      | Change storage location                        |
-| `daily extract-skill --session "name"`   | Extract reusable skill from session            |
-| `daily extract-command --session "name"` | Extract reusable command from session          |
+| Command | Description |
+|---------|-------------|
+| `daily init` | Initialize system and create storage directory |
+| `daily init -i` | Interactive setup with directory selection and digest config |
+| `daily install` | Install Claude Code hooks and slash commands |
+| `daily view` | View today's archive (interactive date selection) |
+| `daily view --date 2024-01-15` | View archive for specific date |
+| `daily view --list` | List all sessions for the day |
+| `daily today` | Quick alias for today's archive |
+| `daily yest` | Quick alias for yesterday's archive |
+| `daily digest` | Consolidate today's sessions into daily.md |
+| `daily digest --date 2024-01-15` | Digest sessions for specific date |
+| `daily config --show` | Show current configuration |
+| `daily extract-skill` | Extract reusable skill from session |
+| `daily extract-command` | Extract reusable command from session |
+| `daily jobs list` | List background jobs |
+| `daily jobs log <id>` | View job logs |
 
 ### Claude Code Slash Commands
 
-After `daily install`:
+After `daily install`, these commands are available in Claude Code:
 
-| Command              | Description                           |
-| -------------------- | ------------------------------------- |
-| `/daily-view`        | View daily archive                    |
-| `/daily-get-skill`   | Extract skill from session insights   |
+| Command | Description |
+|---------|-------------|
+| `/daily-view` | View daily archive |
+| `/daily-get-skill` | Extract skill from session insights |
 | `/daily-get-command` | Extract command from session insights |
 
 ## Configuration
 
-Config file: `~/.config/daily/daily.toml`
+View current config with `daily config --show`.
 
-```toml
-storage_path = "~/.claude/daily"
-```
+Config file location (macOS): `~/Library/Application Support/rs.daily/config.toml`
+
+Key settings:
+- `storage.path` - Archive storage location (default: `~/.claude/daily`)
+- `summarization.model` - AI model for summarization (default: `sonnet`)
+- `summarization.digest_time` - Auto-digest trigger time (default: `06:00`)
+- `summarization.auto_digest_enabled` - Enable/disable auto-digest (default: `true`)
+- `hooks.enable_session_end` - Enable/disable auto-archiving
+
+### Digest System
+
+Sessions are archived individually as `{task-name}.md` files. The digest process consolidates all sessions into a single `daily.md`:
+
+- **Manual digest**: Run `daily digest` to consolidate today's sessions
+- **Auto-digest**: On each session start, if current time >= `digest_time` and yesterday has un-digested sessions, they will be automatically digested
+
+After digest, individual session files are removed, keeping only the consolidated `daily.md`.
 
 ## Archive Structure
 
 ```
 ~/.claude/daily/
-├── 2024-01-15/
-│   ├── daily.md           # Daily summary
-│   ├── fix-bug.md         # Session archive
-│   └── new-feature.md     # Session archive
-└── 2024-01-16/
-    ├── daily.md
-    └── refactor.md
+├── 2024-01-15/              # After digest (sessions consolidated)
+│   └── daily.md             # Daily summary with all sessions
+├── 2024-01-16/              # Before digest (sessions pending)
+│   ├── daily.md             # Placeholder
+│   ├── fix-bug-143052.md    # Session archive
+│   └── new-feature-152310.md # Session archive
+└── jobs/
+    └── *.json, *.log        # Background job tracking
 ```
 
-## Claude Code Integration
-
-After installation, run `daily install` to automatically configure Claude Code hooks and slash commands.
-
-### Manual Hook Configuration
-
-If you prefer manual setup, add the following to `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "daily hook session-start"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "daily hook session-end"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Manual Slash Commands Setup
-
-Add the following to `~/.claude/commands/`:
-
-**`~/.claude/commands/daily-view.md`**
-
-```markdown
----
-description: View daily archive
----
-
-Use the `daily view` skill to show today's archive summary.
-```
-
-**`~/.claude/commands/daily-get-skill.md`**
-
-```markdown
----
-description: Extract skill from session insights
----
-
-Use the `daily-get-skill` skill to extract reusable skills from recent sessions.
-```
-
-**`~/.claude/commands/daily-get-command.md`**
-
-```markdown
----
-description: Extract command from session insights
----
-
-Use the `daily-get-command` skill to extract reusable commands from recent sessions.
-```
-
-### Verify Installation
-
-```bash
-# Check hooks are installed
-cat ~/.claude/settings.json | grep -A 20 "hooks"
-
-# Test hook manually
-echo '{"session_id":"test","cwd":"/tmp","hook_event_name":"SessionStart"}' | daily hook session-start
-
-# View available slash commands
-ls ~/.claude/commands/
-```
+Note: After running `daily digest`, individual session files are removed and consolidated into `daily.md`.
 
 ## Requirements
 
-- Rust 1.70+
+- Rust 1.70+ (for building)
 - Claude Code CLI
 
 ## Contributing

@@ -20,9 +20,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// View today's archive
+    /// View archives (interactive date selection if no date specified)
     View {
-        /// Date to view (default: today, format: yyyy-mm-dd)
+        /// Date to view (format: yyyy-mm-dd)
         #[arg(short, long)]
         date: Option<String>,
 
@@ -31,6 +31,28 @@ pub enum Commands {
         summary_only: bool,
 
         /// List all sessions for the day
+        #[arg(long)]
+        list: bool,
+    },
+
+    /// View today's archive
+    Today {
+        /// Show daily summary only
+        #[arg(long)]
+        summary_only: bool,
+
+        /// List all sessions
+        #[arg(long)]
+        list: bool,
+    },
+
+    /// View yesterday's archive
+    Yest {
+        /// Show daily summary only
+        #[arg(long)]
+        summary_only: bool,
+
+        /// List all sessions
         #[arg(long)]
         list: bool,
     },
@@ -52,6 +74,17 @@ pub enum Commands {
         /// Job ID for tracking (internal use)
         #[arg(long)]
         job_id: Option<String>,
+    },
+
+    /// Generate daily digest from sessions (consolidate sessions into daily.md)
+    Digest {
+        /// Date to digest (format: yyyy-mm-dd, default: today)
+        #[arg(short, long)]
+        date: Option<String>,
+
+        /// Run in foreground (not background)
+        #[arg(long)]
+        foreground: bool,
     },
 
     /// Extract skill from archive
@@ -95,6 +128,10 @@ pub enum Commands {
         /// Storage path (default: ~/.claude/daily)
         #[arg(short, long)]
         storage_path: Option<PathBuf>,
+
+        /// Interactive mode: fuzzy search and select directory
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Show or update configuration

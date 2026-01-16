@@ -15,8 +15,8 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Init { storage_path } => {
-            cli::commands::init::run(storage_path).await
+        Commands::Init { storage_path, interactive } => {
+            cli::commands::init::run(storage_path, interactive).await
         }
         Commands::Hook { hook_type } => {
             match hook_type {
@@ -31,8 +31,17 @@ async fn main() -> Result<()> {
         Commands::View { date, summary_only, list } => {
             cli::commands::view::run(date, summary_only, list).await
         }
+        Commands::Today { summary_only, list } => {
+            cli::commands::view::run_today(summary_only, list).await
+        }
+        Commands::Yest { summary_only, list } => {
+            cli::commands::view::run_yesterday(summary_only, list).await
+        }
         Commands::Summarize { transcript, task_name, foreground, job_id } => {
             cli::commands::summarize::run(transcript, task_name, foreground, job_id).await
+        }
+        Commands::Digest { date, foreground } => {
+            cli::commands::digest::run(date, foreground).await
         }
         Commands::ExtractSkill { date, session, output } => {
             cli::commands::extract::run_skill(date, session, output).await

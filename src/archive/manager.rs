@@ -101,7 +101,6 @@ impl ArchiveManager {
     }
 
     /// List all available dates in the archive
-    #[allow(dead_code)]
     pub fn list_dates(&self) -> Result<Vec<String>> {
         let storage_path = self.config.storage_path();
 
@@ -160,6 +159,32 @@ impl ArchiveManager {
         fs::write(&path, content)
             .context(format!("Failed to write daily summary: {}", path.display()))?;
         Ok(path)
+    }
+
+    /// Check if a date has session files (un-digested sessions)
+    pub fn has_sessions(&self, date: &str) -> bool {
+        match self.list_sessions(date) {
+            Ok(sessions) => !sessions.is_empty(),
+            Err(_) => false,
+        }
+    }
+
+    /// Delete all session files for a date, returning list of deleted file names
+    pub fn delete_sessions(&self, date: &str) -> Result<Vec<String>> {
+        let date_dir = self.config.date_dir(date);
+        let sessions = self.list_sessions(date)?;
+        let mut deleted = Vec::new();
+
+        for session_name in &sessions {
+            let path = date_dir.join(format!("{}.md", session_name));
+            if path.exists() {
+                fs::remove_file(&path)
+                    .context(format!("Failed to delete session: {}", path.display()))?;
+                deleted.push(session_name.clone());
+            }
+        }
+
+        Ok(deleted)
     }
 }
 
