@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 use crate::config::Config;
-use crate::transcript::{TranscriptData, TranscriptParser};
+use crate::transcript::TranscriptParser;
 use crate::archive::{SessionArchive, DailySummary, ArchiveManager};
 use super::prompts::Prompts;
 

@@ -1,4 +1,3 @@
-use crate::archive::SessionArchive;
 
 /// Prompts for Claude CLI summarization
 pub struct Prompts;

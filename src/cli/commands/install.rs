@@ -1,12 +1,11 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::PathBuf;
 
 use crate::config::load_config;
 
 /// Install plugin to Claude Code
 pub async fn run(scope: String) -> Result<()> {
-    let config = load_config()?;
+    let _config = load_config()?;
 
     let target_dir = match scope.as_str() {
         "user" => {

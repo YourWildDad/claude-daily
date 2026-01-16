@@ -94,7 +94,7 @@ impl DailySummary {
 
         // Try to read existing summary
         match manager.read_daily_summary(date) {
-            Ok(content) => {
+            Ok(_content) => {
                 // Parse frontmatter to extract existing data
                 // For now, just create new with sessions
                 let mut summary = Self::new(date.to_string());

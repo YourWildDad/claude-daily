@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::Local;
 
 /// Templates for generating Obsidian-compatible Markdown files
 pub struct Templates;
