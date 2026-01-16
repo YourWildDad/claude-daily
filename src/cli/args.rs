@@ -20,19 +20,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Initialize configuration
-    Init {
-        /// Storage path (default: ~/.claude/daily)
-        #[arg(short, long)]
-        storage_path: Option<PathBuf>,
-    },
-
-    /// Handle Claude Code hooks (internal use)
-    Hook {
-        #[command(subcommand)]
-        hook_type: HookType,
-    },
-
     /// View today's archive
     View {
         /// Date to view (default: today, format: yyyy-mm-dd)
@@ -97,6 +84,19 @@ pub enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Manage background jobs
+    Jobs {
+        #[command(subcommand)]
+        action: JobsAction,
+    },
+
+    /// Initialize configuration
+    Init {
+        /// Storage path (default: ~/.claude/daily)
+        #[arg(short, long)]
+        storage_path: Option<PathBuf>,
+    },
+
     /// Show or update configuration
     Config {
         /// Set storage path
@@ -115,10 +115,10 @@ pub enum Commands {
         scope: String,
     },
 
-    /// Manage background jobs
-    Jobs {
+    /// Handle Claude Code hooks (internal use)
+    Hook {
         #[command(subcommand)]
-        action: JobsAction,
+        hook_type: HookType,
     },
 }
 

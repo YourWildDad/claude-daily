@@ -47,6 +47,11 @@ impl SummarizerEngine {
                 &self.config.summarization.model,
                 "--print", // Print response and exit
                 "-p",      // Prompt mode
+                // Disable hooks to prevent infinite loop (daily hooks -> claude -> daily hooks -> ...)
+                "--settings",
+                r#"{"hooks":{}}"#,
+                // Disable session persistence to avoid generating transcripts for internal calls
+                "--no-session-persistence",
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
