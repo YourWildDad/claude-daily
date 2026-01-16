@@ -61,6 +61,10 @@ pub enum Commands {
         /// Run in foreground (not background)
         #[arg(long)]
         foreground: bool,
+
+        /// Job ID for tracking (internal use)
+        #[arg(long)]
+        job_id: Option<String>,
     },
 
     /// Extract skill from archive
@@ -109,6 +113,53 @@ pub enum Commands {
         /// Scope: user or project
         #[arg(short, long, default_value = "user")]
         scope: String,
+    },
+
+    /// Manage background jobs
+    Jobs {
+        #[command(subcommand)]
+        action: JobsAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum JobsAction {
+    /// List background jobs
+    List {
+        /// Show all jobs (including completed)
+        #[arg(short, long)]
+        all: bool,
+    },
+
+    /// Show job log
+    Log {
+        /// Job ID
+        job_id: String,
+
+        /// Show only last N lines
+        #[arg(short, long)]
+        tail: Option<usize>,
+
+        /// Follow log output (like tail -f)
+        #[arg(short, long)]
+        follow: bool,
+    },
+
+    /// Kill a running job
+    Kill {
+        /// Job ID
+        job_id: String,
+    },
+
+    /// Cleanup old jobs
+    Cleanup {
+        /// Keep jobs from last N days (default: 7)
+        #[arg(short, long, default_value = "7")]
+        days: u32,
+
+        /// Show what would be removed without removing
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 

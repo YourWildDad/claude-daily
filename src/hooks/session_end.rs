@@ -3,6 +3,7 @@ use std::process::{Command, Stdio};
 
 use crate::config::load_config;
 use crate::hooks::read_hook_input;
+use crate::jobs::JobManager;
 
 /// Handle SessionEnd hook from Claude Code
 /// Spawns background process for summarization
@@ -23,22 +24,42 @@ pub async fn handle() -> Result<()> {
         }
     };
 
-    // Only archive on user_exit (normal completion)
-    if input.reason.as_deref() != Some("user_exit") {
-        eprintln!(
-            "[daily] Session ended with {:?}, skipping archive",
-            input.reason
-        );
-        return Ok(());
-    }
+    // Archive on all session end reasons to collect complete history
+    // Reasons: "prompt_input_exit" (Ctrl+D), "logout", "clear", "other"
+    eprintln!(
+        "[daily] Session ended with {:?}, starting archive",
+        input.reason
+    );
 
     // Generate task name from working directory
     let task_name = generate_task_name(&input.cwd);
 
-    // Spawn background process for summarization
-    // This ensures Claude Code can exit immediately
+    // Initialize job manager
+    let job_manager = match JobManager::new(&config) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("[daily] Failed to initialize job manager: {}", e);
+            return Ok(()); // Don't block session exit
+        }
+    };
+
+    // Generate job ID
+    let job_id = JobManager::generate_job_id(&task_name);
     let transcript_path = input.transcript_path.to_string_lossy().to_string();
 
+    // Create log file for the job
+    let (stdout_file, stderr_file) = match job_manager.create_log_file(&job_id) {
+        Ok(f) => {
+            let f2 = f.try_clone().unwrap_or_else(|_| {
+                std::fs::File::create("/dev/null").expect("Failed to open /dev/null")
+            });
+            (Stdio::from(f), Stdio::from(f2))
+        }
+        Err(_) => (Stdio::null(), Stdio::null()),
+    };
+
+    // Spawn background process for summarization
+    // This ensures Claude Code can exit immediately
     match Command::new("daily")
         .args([
             "summarize",
@@ -46,15 +67,25 @@ pub async fn handle() -> Result<()> {
             &transcript_path,
             "--task-name",
             &task_name,
+            "--job-id",
+            &job_id,
+            "--foreground",
         ])
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(stdout_file)
+        .stderr(stderr_file)
         .spawn()
     {
         Ok(child) => {
+            // Register the job
+            if let Err(e) =
+                job_manager.register(&job_id, child.id(), &task_name, &input.transcript_path)
+            {
+                eprintln!("[daily] Failed to register job: {}", e);
+            }
             eprintln!(
-                "[daily] Background summarization started (PID: {})",
+                "[daily] Background summarization started: {} (PID: {})",
+                job_id,
                 child.id()
             );
         }

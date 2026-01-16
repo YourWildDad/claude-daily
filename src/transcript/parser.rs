@@ -23,6 +23,7 @@ pub struct TranscriptEntry {
 
 /// Parsed transcript data with extracted information
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TranscriptData {
     pub entries: Vec<TranscriptEntry>,
     pub user_messages: Vec<String>,
@@ -33,6 +34,7 @@ pub struct TranscriptData {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ToolCall {
     pub name: String,
     pub input: serde_json::Value,

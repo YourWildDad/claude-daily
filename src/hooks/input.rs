@@ -5,13 +5,14 @@ use std::path::PathBuf;
 
 /// Input data received from Claude Code hooks via stdin
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct HookInput {
     pub session_id: String,
     pub transcript_path: PathBuf,
     pub cwd: PathBuf,
     pub hook_event_name: String,
     #[serde(default)]
-    pub reason: Option<String>, // Only for SessionEnd: user_exit, timeout, error
+    pub reason: Option<String>, // Only for SessionEnd: prompt_input_exit, logout, clear, other
     #[serde(default)]
     pub permission_mode: Option<String>,
 }

@@ -101,6 +101,7 @@ impl ArchiveManager {
     }
 
     /// List all available dates in the archive
+    #[allow(dead_code)]
     pub fn list_dates(&self) -> Result<Vec<String>> {
         let storage_path = self.config.storage_path();
 

@@ -36,6 +36,7 @@ impl DailySummary {
     }
 
     /// Add a session to the summary
+    #[allow(dead_code)]
     pub fn add_session(&mut self, session_name: &str) {
         if !self.sessions.contains(&session_name.to_string()) {
             self.sessions.push(session_name.to_string());
@@ -86,6 +87,7 @@ impl DailySummary {
     }
 
     /// Load daily summary from disk, or create new if not exists
+    #[allow(dead_code)]
     pub fn load_or_create(config: &Config, date: &str) -> Result<Self> {
         let manager = ArchiveManager::new(config.clone());
 

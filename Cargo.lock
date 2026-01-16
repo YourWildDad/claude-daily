@@ -368,6 +368,7 @@ dependencies = [
  "colored",
  "confy",
  "dirs 5.0.1",
+ "libc",
  "predicates",
  "serde",
  "serde_json",

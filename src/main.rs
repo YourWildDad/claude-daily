@@ -1,13 +1,14 @@
 mod cli;
 mod config;
 mod hooks;
+mod jobs;
 mod transcript;
 mod archive;
 mod summarizer;
 
 use anyhow::Result;
 use clap::Parser;
-use cli::args::{Cli, Commands, HookType};
+use cli::args::{Cli, Commands, HookType, JobsAction};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,8 +31,8 @@ async fn main() -> Result<()> {
         Commands::View { date, summary_only, list } => {
             cli::commands::view::run(date, summary_only, list).await
         }
-        Commands::Summarize { transcript, task_name, foreground } => {
-            cli::commands::summarize::run(transcript, task_name, foreground).await
+        Commands::Summarize { transcript, task_name, foreground, job_id } => {
+            cli::commands::summarize::run(transcript, task_name, foreground, job_id).await
         }
         Commands::ExtractSkill { date, session, output } => {
             cli::commands::extract::run_skill(date, session, output).await
@@ -44,6 +45,22 @@ async fn main() -> Result<()> {
         }
         Commands::Install { scope } => {
             cli::commands::install::run(scope).await
+        }
+        Commands::Jobs { action } => {
+            match action {
+                JobsAction::List { all } => {
+                    cli::commands::jobs::list(all).await
+                }
+                JobsAction::Log { job_id, tail, follow } => {
+                    cli::commands::jobs::log(job_id, tail, follow).await
+                }
+                JobsAction::Kill { job_id } => {
+                    cli::commands::jobs::kill(job_id).await
+                }
+                JobsAction::Cleanup { days, dry_run } => {
+                    cli::commands::jobs::cleanup(days, dry_run).await
+                }
+            }
         }
     }
 }

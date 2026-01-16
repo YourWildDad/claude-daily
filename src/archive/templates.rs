@@ -181,6 +181,7 @@ _No sessions archived yet._
     }
 
     /// Generate skill template
+    #[allow(dead_code)]
     pub fn skill(
         name: &str,
         description: &str,
@@ -222,6 +223,7 @@ _Add examples based on your usage patterns._
     }
 
     /// Generate command template
+    #[allow(dead_code)]
     pub fn command(
         name: &str,
         description: &str,

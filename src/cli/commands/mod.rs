@@ -4,3 +4,4 @@ pub mod summarize;
 pub mod extract;
 pub mod config;
 pub mod install;
+pub mod jobs;
