@@ -41,6 +41,22 @@ pub struct ToolCall {
     pub response: Option<serde_json::Value>,
 }
 
+impl TranscriptData {
+    /// Check if the session is empty (no meaningful user interaction)
+    pub fn is_empty(&self) -> bool {
+        // A session is empty if there are no user messages
+        // or all user messages are blank/whitespace only
+        if self.user_messages.is_empty() {
+            return true;
+        }
+
+        // Check if all user messages are just whitespace
+        self.user_messages
+            .iter()
+            .all(|msg| msg.trim().is_empty())
+    }
+}
+
 /// Parser for Claude Code transcript JSONL files
 pub struct TranscriptParser;
 
@@ -192,5 +208,43 @@ mod tests {
     fn test_truncate_text() {
         assert_eq!(truncate_text("short", 10), "short");
         assert_eq!(truncate_text("this is a longer text", 10), "this is a ...");
+    }
+
+    fn create_empty_transcript_data() -> TranscriptData {
+        TranscriptData {
+            entries: vec![],
+            user_messages: vec![],
+            assistant_messages: vec![],
+            tool_calls: vec![],
+            files_modified: vec![],
+            summary: None,
+        }
+    }
+
+    #[test]
+    fn test_is_empty_no_messages() {
+        let data = create_empty_transcript_data();
+        assert!(data.is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_whitespace_only() {
+        let mut data = create_empty_transcript_data();
+        data.user_messages = vec!["   ".to_string(), "\n\t".to_string()];
+        assert!(data.is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_with_content() {
+        let mut data = create_empty_transcript_data();
+        data.user_messages = vec!["Hello, world!".to_string()];
+        assert!(!data.is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_mixed_messages() {
+        let mut data = create_empty_transcript_data();
+        data.user_messages = vec!["   ".to_string(), "actual content".to_string()];
+        assert!(!data.is_empty());
     }
 }

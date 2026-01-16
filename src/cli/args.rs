@@ -78,13 +78,17 @@ pub enum Commands {
 
     /// Generate daily digest from sessions (consolidate sessions into daily.md)
     Digest {
+        /// Relative date (e.g., "yest" or "yesterday" for yesterday)
+        #[arg(value_name = "RELATIVE_DATE")]
+        relative_date: Option<String>,
+
         /// Date to digest (format: yyyy-mm-dd, default: today)
         #[arg(short, long)]
         date: Option<String>,
 
-        /// Run in foreground (not background)
+        /// Run in background (default: foreground)
         #[arg(long)]
-        foreground: bool,
+        background: bool,
     },
 
     /// Extract skill from archive

@@ -68,7 +68,7 @@ impl DailySummary {
     pub fn to_markdown(&self) -> String {
         Templates::daily_summary(
             &self.date,
-            &self.sessions,
+            self.sessions.len(),
             &self.overview,
             &self.session_details,
             &self.insights,
@@ -139,6 +139,6 @@ mod tests {
 
         let md = summary.to_markdown();
         assert!(md.contains("date: 2026-01-16"));
-        assert!(md.contains("total_sessions: 1"));
+        assert!(md.contains("session_count: 1"));
     }
 }

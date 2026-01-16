@@ -74,7 +74,7 @@ created: {created}
     /// Generate daily summary frontmatter and content
     pub fn daily_summary(
         date: &str,
-        sessions: &[String],
+        session_count: usize,
         overview: &str,
         session_details: &str,
         insights: &str,
@@ -84,21 +84,13 @@ created: {created}
         tomorrow_focus: &str,
     ) -> String {
         let updated = Local::now().to_rfc3339();
-        let sessions_yaml: String = sessions
-            .iter()
-            .map(|s| format!("  - \"{}\"", s))
-            .collect::<Vec<_>>()
-            .join("\n");
-        let total = sessions.len();
 
         format!(
             r#"---
 date: {date}
 updated: {updated}
 tags: [daily-summary, claude-code]
-sessions:
-{sessions_yaml}
-total_sessions: {total}
+session_count: {session_count}
 ---
 
 # Daily Summary - {date}
@@ -150,8 +142,7 @@ date: {date}
 created: {created}
 updated: {created}
 tags: [daily-summary, claude-code]
-sessions: []
-total_sessions: 0
+session_count: 0
 ---
 
 # Daily Summary - {date}
@@ -275,6 +266,6 @@ mod tests {
     fn test_daily_init_template() {
         let content = Templates::daily_init("2026-01-16");
         assert!(content.contains("date: 2026-01-16"));
-        assert!(content.contains("total_sessions: 0"));
+        assert!(content.contains("session_count: 0"));
     }
 }

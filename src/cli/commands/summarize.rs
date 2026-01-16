@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 use crate::config::load_config;
 use crate::jobs::JobManager;
 use crate::summarizer::SummarizerEngine;
+use crate::transcript::TranscriptParser;
 
 /// Manually trigger summarization of a transcript
 pub async fn run(
@@ -127,6 +128,15 @@ async fn run_summarization(
     task_name: &str,
     cwd: &str,
 ) -> Result<()> {
+    // Check if session is empty before summarizing
+    let transcript_data = TranscriptParser::parse(transcript)
+        .context("Failed to parse transcript")?;
+
+    if transcript_data.is_empty() {
+        eprintln!("[daily] Session is empty, skipping summarization");
+        return Ok(());
+    }
+
     let engine = SummarizerEngine::new(config.clone());
 
     // Summarize the session

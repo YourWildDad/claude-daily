@@ -40,8 +40,8 @@ async fn main() -> Result<()> {
         Commands::Summarize { transcript, task_name, foreground, job_id } => {
             cli::commands::summarize::run(transcript, task_name, foreground, job_id).await
         }
-        Commands::Digest { date, foreground } => {
-            cli::commands::digest::run(date, foreground).await
+        Commands::Digest { relative_date, date, background } => {
+            cli::commands::digest::run(relative_date, date, background).await
         }
         Commands::ExtractSkill { date, session, output } => {
             cli::commands::extract::run_skill(date, session, output).await

@@ -52,6 +52,8 @@ impl SummarizerEngine {
                 r#"{"hooks":{}}"#,
                 // Disable session persistence to avoid generating transcripts for internal calls
                 "--no-session-persistence",
+                // Disable MCP to avoid file watcher errors in non-interactive mode
+                "--strict-mcp-config",
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

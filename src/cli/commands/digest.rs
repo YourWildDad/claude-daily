@@ -1,18 +1,36 @@
 use anyhow::{Context, Result};
+use chrono::{Duration, Local};
 use std::process::{Command, Stdio};
 
 use crate::archive::ArchiveManager;
 use crate::config::load_config;
 use crate::summarizer::SummarizerEngine;
 
+/// Parse relative date string to actual date
+fn parse_relative_date(relative: &str) -> Option<String> {
+    match relative.to_lowercase().as_str() {
+        "yest" | "yesterday" => {
+            let yesterday = Local::now() - Duration::days(1);
+            Some(yesterday.format("%Y-%m-%d").to_string())
+        }
+        "today" => Some(Local::now().format("%Y-%m-%d").to_string()),
+        _ => None,
+    }
+}
+
 /// Run the digest command - generate daily summary from sessions
-pub async fn run(date: Option<String>, foreground: bool) -> Result<()> {
+pub async fn run(relative_date: Option<String>, date: Option<String>, background: bool) -> Result<()> {
     let config = load_config()?;
 
-    // Determine target date
-    let target_date = date.unwrap_or_else(|| {
-        chrono::Local::now().format("%Y-%m-%d").to_string()
-    });
+    // Determine target date: relative_date takes precedence, then --date, then today
+    let target_date = if let Some(rel) = relative_date {
+        parse_relative_date(&rel).unwrap_or_else(|| {
+            eprintln!("[daily] Unknown relative date '{}', using as literal date", rel);
+            rel
+        })
+    } else {
+        date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string())
+    };
 
     let manager = ArchiveManager::new(config.clone());
 
@@ -23,7 +41,7 @@ pub async fn run(date: Option<String>, foreground: bool) -> Result<()> {
         return Ok(());
     }
 
-    if !foreground {
+    if background {
         // Background mode: spawn detached process
         eprintln!(
             "[daily] Starting background digest for {} ({} sessions)",
@@ -35,7 +53,7 @@ pub async fn run(date: Option<String>, foreground: bool) -> Result<()> {
             .context("Failed to get current executable")?;
 
         Command::new(&exe)
-            .args(["digest", "--date", &target_date, "--foreground"])
+            .args(["digest", "--date", &target_date])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
