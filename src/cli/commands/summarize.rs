@@ -1,0 +1,116 @@
+use anyhow::{Context, Result};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
+
+use crate::config::load_config;
+use crate::summarizer::SummarizerEngine;
+
+/// Manually trigger summarization of a transcript
+pub async fn run(
+    transcript: PathBuf,
+    task_name: Option<String>,
+    foreground: bool,
+) -> Result<()> {
+    let config = load_config()?;
+
+    // Generate task name if not provided
+    let task_name = task_name.unwrap_or_else(|| {
+        let timestamp = chrono::Local::now().format("%H%M%S");
+        format!("session-{}", timestamp)
+    });
+
+    // Get working directory from transcript path or current dir
+    let cwd = transcript
+        .parent()
+        .and_then(|p| p.parent()) // Go up from transcript to project
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| std::env::current_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| ".".to_string()));
+
+    if !foreground {
+        // Background mode: spawn detached process
+        eprintln!("[daily] Starting background summarization for: {}", task_name);
+
+        // Re-invoke ourselves in foreground mode as a detached process
+        let exe = std::env::current_exe().context("Failed to get current executable")?;
+
+        let transcript_str = transcript.to_string_lossy().to_string();
+
+        // Spawn detached background process
+        #[cfg(unix)]
+        {
+            // Use nohup-style spawning on Unix
+            Command::new(&exe)
+                .args([
+                    "summarize",
+                    "--transcript",
+                    &transcript_str,
+                    "--task-name",
+                    &task_name,
+                    "--foreground",
+                ])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .context("Failed to spawn background process")?;
+        }
+
+        #[cfg(windows)]
+        {
+            Command::new(&exe)
+                .args([
+                    "summarize",
+                    "--transcript",
+                    &transcript_str,
+                    "--task-name",
+                    &task_name,
+                    "--foreground",
+                ])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .context("Failed to spawn background process")?;
+        }
+
+        eprintln!("[daily] Background summarization started");
+        return Ok(());
+    }
+
+    // Foreground mode: do the actual summarization
+    eprintln!("[daily] Summarizing session: {}", task_name);
+
+    let engine = SummarizerEngine::new(config.clone());
+
+    // Summarize the session
+    let archive = engine
+        .summarize_session(&transcript, &task_name, &cwd)
+        .await
+        .context("Failed to summarize session")?;
+
+    // Save the archive
+    let archive_path = archive.save(&config)?;
+    eprintln!("[daily] Session archived: {}", archive_path.display());
+
+    // Update daily summary if enabled
+    if config.summarization.enable_daily_summary {
+        eprintln!("[daily] Updating daily summary...");
+
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        match engine.update_daily_summary(&today).await {
+            Ok(summary) => {
+                let summary_path = summary.save(&config)?;
+                eprintln!("[daily] Daily summary updated: {}", summary_path.display());
+            }
+            Err(e) => {
+                eprintln!("[daily] Warning: Failed to update daily summary: {}", e);
+            }
+        }
+    }
+
+    eprintln!("[daily] Summarization complete!");
+
+    Ok(())
+}

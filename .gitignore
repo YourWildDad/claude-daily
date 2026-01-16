@@ -1,0 +1,19 @@
+# Build output
+/target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log

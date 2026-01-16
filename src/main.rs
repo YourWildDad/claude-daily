@@ -1,0 +1,49 @@
+mod cli;
+mod config;
+mod hooks;
+mod transcript;
+mod archive;
+mod summarizer;
+
+use anyhow::Result;
+use clap::Parser;
+use cli::args::{Cli, Commands, HookType};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Init { storage_path } => {
+            cli::commands::init::run(storage_path).await
+        }
+        Commands::Hook { hook_type } => {
+            match hook_type {
+                HookType::SessionStart => {
+                    hooks::session_start::handle().await
+                }
+                HookType::SessionEnd => {
+                    hooks::session_end::handle().await
+                }
+            }
+        }
+        Commands::View { date, summary_only, list } => {
+            cli::commands::view::run(date, summary_only, list).await
+        }
+        Commands::Summarize { transcript, task_name, foreground } => {
+            cli::commands::summarize::run(transcript, task_name, foreground).await
+        }
+        Commands::ExtractSkill { date, session, output } => {
+            cli::commands::extract::run_skill(date, session, output).await
+        }
+        Commands::ExtractCommand { date, session, output } => {
+            cli::commands::extract::run_command(date, session, output).await
+        }
+        Commands::Config { set_storage, show } => {
+            cli::commands::config::run(set_storage, show).await
+        }
+        Commands::Install { scope } => {
+            cli::commands::install::run(scope).await
+        }
+    }
+}

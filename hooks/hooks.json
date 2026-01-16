@@ -1,0 +1,25 @@
+{
+  "description": "Daily Context Archive hooks for automatic session archiving",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "daily hook session-start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "daily hook session-end"
+          }
+        ]
+      }
+    ]
+  }
+}
