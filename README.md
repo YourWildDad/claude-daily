@@ -4,6 +4,9 @@
 
 English | [中文](README.zh-CN.md)
 
+
+> <i> Every Claude code chat makes you better. </i>
+
 **More than a log — a system that compounds your context.**
 
 Daily is a context archive system for [Claude Code](https://claude.ai/code) that automatically records, summarizes, and distills reusable skills from your AI-assisted work sessions. The more you use it, the stronger your personal context library becomes.
