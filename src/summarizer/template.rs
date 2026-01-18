@@ -30,23 +30,21 @@ impl TemplateEngine {
         let mut chars = template.chars().peekable();
 
         while let Some(c) = chars.next() {
-            if c == '{' {
-                if chars.peek() == Some(&'{') {
-                    chars.next(); // consume second '{'
-                    let mut var_name = String::new();
-                    while let Some(&next_c) = chars.peek() {
-                        if next_c == '}' {
+            if c == '{' && chars.peek() == Some(&'{') {
+                chars.next(); // consume second '{'
+                let mut var_name = String::new();
+                while let Some(&next_c) = chars.peek() {
+                    if next_c == '}' {
+                        chars.next();
+                        if chars.peek() == Some(&'}') {
                             chars.next();
-                            if chars.peek() == Some(&'}') {
-                                chars.next();
-                                if !var_name.is_empty() && !variables.contains(&var_name) {
-                                    variables.push(var_name);
-                                }
-                                break;
+                            if !var_name.is_empty() && !variables.contains(&var_name) {
+                                variables.push(var_name);
                             }
-                        } else {
-                            var_name.push(chars.next().unwrap());
+                            break;
                         }
+                    } else {
+                        var_name.push(chars.next().unwrap());
                     }
                 }
             }
