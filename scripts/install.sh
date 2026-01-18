@@ -107,36 +107,37 @@ install_daily() {
     success "Installed Daily to ${target}"
 }
 
-# Check if directory is in PATH
-check_path() {
-    local dir="$1"
-    if [[ ":$PATH:" != *":${dir}:"* ]]; then
-        warn "${dir} is not in your PATH"
-        echo ""
-        echo "Add the following to your shell configuration file (~/.bashrc, ~/.zshrc, etc.):"
-        echo ""
-        echo "  export PATH=\"\$PATH:${dir}\""
-        echo ""
-    fi
-}
-
 # Run post-install setup
 post_install() {
     local install_dir="$1"
-    local binary="${install_dir}/${BINARY_NAME}"
 
     echo ""
     success "Daily has been installed successfully!"
     echo ""
+
+    # Check if directory is in PATH and show warning first
+    if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
+        warn "${install_dir} is not in your PATH"
+        echo ""
+        echo "Add the following to your shell configuration file (~/.bashrc, ~/.zshrc, etc.):"
+        echo ""
+        echo "  export PATH=\"\$PATH:${install_dir}\""
+        echo ""
+        echo "Then reload your shell or run:"
+        echo ""
+        echo "  source ~/.bashrc  # or source ~/.zshrc"
+        echo ""
+    fi
+
     echo "Next steps:"
     echo "  1. Initialize Daily:"
-    echo "     ${binary} init"
+    echo "     daily init"
     echo ""
     echo "  2. Install Claude Code hooks:"
-    echo "     ${binary} install"
+    echo "     daily install"
     echo ""
     echo "  3. View today's archive:"
-    echo "     ${binary} view"
+    echo "     daily show"
     echo ""
     echo "For more information, visit:"
     echo "  https://github.com/${REPO}"
@@ -173,10 +174,7 @@ main() {
     # Install
     install_daily "$platform" "$version" "$install_dir"
 
-    # Check PATH
-    check_path "$install_dir"
-
-    # Post-install instructions
+    # Post-install instructions (includes PATH check)
     post_install "$install_dir"
 }
 
