@@ -22,3 +22,6 @@ Thumbs.db
 .claude/
 .claude-plugin/
 
+# Node modules
+node_modules/
+

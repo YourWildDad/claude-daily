@@ -57,9 +57,7 @@ pub async fn run(set_storage: Option<PathBuf>, show: bool, interactive: bool) ->
 }
 
 /// Interactive configuration
-async fn configure_interactive(
-    config: &mut crate::config::Config,
-) -> Result<()> {
+async fn configure_interactive(config: &mut crate::config::Config) -> Result<()> {
     let theme = ColorfulTheme::default();
 
     println!("[daily] Interactive Configuration");
