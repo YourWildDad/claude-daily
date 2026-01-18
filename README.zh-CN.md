@@ -38,8 +38,8 @@ daily init
 # 2. 安装 Claude Code hooks
 daily install
 
-# 3. 查看今日归档
-daily view
+# 3. 打开 Web 仪表盘
+daily show
 ```
 
 ## 工作原理
@@ -64,6 +64,9 @@ flowchart LR
 |------|------|
 | `daily init` | 初始化系统并创建存储目录 |
 | `daily install` | 安装 Claude Code hooks 和斜杠命令 |
+| `daily show` | 在浏览器中打开 Web 仪表盘（默认：http://127.0.0.1:31456） |
+| `daily show --port 8080` | 在自定义端口启动仪表盘 |
+| `daily show --no-open` | 启动服务但不自动打开浏览器 |
 | `daily view` | 查看今日归档（交互式日期选择） |
 | `daily view --date 2024-01-15` | 查看指定日期的归档 |
 | `daily view --list` | 列出当天所有会话 |
