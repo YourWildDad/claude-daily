@@ -45,6 +45,15 @@ dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 # Path handling
 shellexpand = "3.1"
 
+# Web server
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+rust-embed = "8.5"
+mime_guess = "2.0"
+futures-util = "0.3"
+open = "5.3"
+
 # Unix process control
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

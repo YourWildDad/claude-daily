@@ -2,11 +2,13 @@ import { useState, useCallback } from 'react';
 import { Scrollama, Step } from 'react-scrollama';
 import { motion, AnimatePresence } from 'framer-motion';
 import DataFlowVisualization from './components/DataFlowVisualization';
+import Docs from './components/Docs';
 import { steps, claudeStructure } from './data/content';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState('home');
 
   const onStepEnter = useCallback(({ data }) => {
     setCurrentStep(data);
@@ -23,10 +25,61 @@ function App() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-orange-500/20">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Daily" className="h-10 w-auto" />
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab('home')}
+              className="flex items-center gap-3"
+            >
+              <img src="/logo.png" alt="Daily" className="h-10 w-auto" />
+            </button>
+            {/* Tabs */}
+            <nav className="hidden sm:flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('home')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === 'home'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1a1a]'
+                }`}
+              >
+                Home
+              </button>
+              <button
+                onClick={() => setActiveTab('docs')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === 'docs'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1a1a]'
+                }`}
+              >
+                Docs
+              </button>
+            </nav>
           </div>
           <div className="flex items-center gap-4">
+            {/* Mobile tabs */}
+            <div className="flex sm:hidden items-center gap-1">
+              <button
+                onClick={() => setActiveTab('home')}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  activeTab === 'home'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400'
+                }`}
+              >
+                Home
+              </button>
+              <button
+                onClick={() => setActiveTab('docs')}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  activeTab === 'docs'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400'
+                }`}
+              >
+                Docs
+              </button>
+            </div>
             <a
               href="https://github.com/oanakiaja/claude-daily"
               target="_blank"
@@ -36,23 +89,40 @@ function App() {
               GitHub
             </a>
             <a
-              href="#install"
+              href={activeTab === 'home' ? '#install' : '#'}
+              onClick={(e) => {
+                if (activeTab !== 'home') {
+                  e.preventDefault();
+                  setActiveTab('home');
+                  setTimeout(() => {
+                    document.getElementById('install')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }
+              }}
               className="px-4 py-2 bg-orange-500 text-black text-sm font-medium rounded-lg hover:bg-orange-400 transition-colors"
             >
               Get Started
             </a>
           </div>
         </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-[#1a1a1a]">
-          <motion.div
-            className="h-full bg-gradient-to-r from-orange-600 to-orange-400"
-            style={{ width: `${((currentStep + progress) / steps.length) * 100}%` }}
-            transition={{ duration: 0.2 }}
-          />
-        </div>
+        {/* Progress bar - only show on home */}
+        {activeTab === 'home' && (
+          <div className="h-1 bg-[#1a1a1a]">
+            <motion.div
+              className="h-full bg-gradient-to-r from-orange-600 to-orange-400"
+              style={{ width: `${((currentStep + progress) / steps.length) * 100}%` }}
+              transition={{ duration: 0.2 }}
+            />
+          </div>
+        )}
       </header>
 
+      {/* Docs Tab */}
+      {activeTab === 'docs' && <Docs />}
+
+      {/* Home Tab */}
+      {activeTab === 'home' && (
+        <>
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center px-6 pt-16">
         <div className="max-w-4xl mx-auto text-center">
@@ -259,6 +329,9 @@ function App() {
           </div>
         </div>
       </section>
+
+        </>
+      )}
 
       {/* Footer */}
       <footer className="py-8 px-6 bg-[#0a0a0a] text-center text-gray-500 text-sm border-t border-orange-500/10">

@@ -161,6 +161,21 @@ pub enum Commands {
         #[command(subcommand)]
         hook_type: HookType,
     },
+
+    /// Start web dashboard server
+    Show {
+        /// Port to listen on (default: 31456, auto-increment if occupied)
+        #[arg(short, long)]
+        port: Option<u16>,
+
+        /// Host to bind to
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+
+        /// Do not open browser automatically
+        #[arg(long)]
+        no_open: bool,
+    },
 }
 
 #[derive(Subcommand)]

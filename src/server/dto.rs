@@ -1,0 +1,138 @@
+use serde::{Deserialize, Serialize};
+
+use crate::jobs::{JobInfo, JobStatus};
+
+/// Generic API response wrapper
+#[derive(Serialize)]
+pub struct ApiResponse<T: Serialize> {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+impl<T: Serialize> ApiResponse<T> {
+    pub fn success(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+
+    pub fn error(message: impl Into<String>) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message.into()),
+        }
+    }
+}
+
+/// Date info for listing
+#[derive(Serialize)]
+pub struct DateInfo {
+    pub date: String,
+    pub session_count: usize,
+    pub has_digest: bool,
+}
+
+/// Brief session info for listing
+#[derive(Serialize)]
+pub struct SessionBrief {
+    pub name: String,
+    pub title: String,
+    pub summary_preview: String,
+}
+
+/// Daily summary DTO
+#[derive(Serialize)]
+pub struct DailySummaryDto {
+    pub date: String,
+    pub overview: String,
+    pub session_count: usize,
+    pub sessions: Vec<String>,
+    pub insights: Option<String>,
+    pub skills: Option<String>,
+    pub commands: Option<String>,
+    pub reflections: Option<String>,
+    pub tomorrow_focus: Option<String>,
+    pub raw_content: String,
+}
+
+/// Session detail DTO
+#[derive(Serialize)]
+pub struct SessionDetailDto {
+    pub name: String,
+    pub content: String,
+    pub metadata: SessionMetadata,
+}
+
+/// Session metadata extracted from frontmatter
+#[derive(Serialize, Default)]
+pub struct SessionMetadata {
+    pub title: String,
+    pub date: String,
+    pub session_id: Option<String>,
+    pub cwd: Option<String>,
+    pub git_branch: Option<String>,
+    pub duration: Option<String>,
+    pub tool_calls: Option<usize>,
+}
+
+/// Job DTO for API responses
+#[derive(Serialize, Deserialize, Clone)]
+pub struct JobDto {
+    pub id: String,
+    pub pid: u32,
+    pub task_name: String,
+    pub status: String,
+    pub status_type: String,
+    pub started_at: String,
+    pub finished_at: Option<String>,
+    pub elapsed: String,
+}
+
+impl From<JobInfo> for JobDto {
+    fn from(info: JobInfo) -> Self {
+        let (status, status_type) = match &info.status {
+            JobStatus::Running => ("Running".to_string(), "running".to_string()),
+            JobStatus::Completed => ("Completed".to_string(), "completed".to_string()),
+            JobStatus::Failed { error } => (format!("Failed: {}", error), "failed".to_string()),
+        };
+
+        // Compute elapsed before moving fields
+        let elapsed = info.elapsed_human();
+        let started_at = info.started_at.format("%Y-%m-%d %H:%M:%S").to_string();
+        let finished_at = info.finished_at.map(|t: chrono::DateTime<chrono::Local>| t.format("%Y-%m-%d %H:%M:%S").to_string());
+
+        Self {
+            id: info.id,
+            pid: info.pid,
+            task_name: info.task_name,
+            status,
+            status_type,
+            started_at,
+            finished_at,
+            elapsed,
+        }
+    }
+}
+
+/// Job log response
+#[derive(Serialize)]
+pub struct JobLogDto {
+    pub id: String,
+    pub content: String,
+}
+
+/// WebSocket message types
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "data")]
+pub enum WsMessage {
+    JobUpdated(JobDto),
+    NewSession { date: String, name: String },
+    DigestCompleted { date: String },
+    Connected,
+}

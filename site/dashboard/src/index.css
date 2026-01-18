@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Base styles */
+body {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Markdown content styling */
+.markdown-content h1 {
+  @apply text-2xl font-bold text-orange-400 mb-4;
+}
+
+.markdown-content h2 {
+  @apply text-xl font-semibold text-orange-300 mt-6 mb-3;
+}
+
+.markdown-content h3 {
+  @apply text-lg font-medium text-gray-200 mt-4 mb-2;
+}
+
+.markdown-content p {
+  @apply text-gray-300 mb-3 leading-relaxed text-pretty;
+}
+
+.markdown-content ul {
+  @apply list-disc list-inside mb-3 space-y-1;
+}
+
+.markdown-content li {
+  @apply text-gray-300;
+}
+
+.markdown-content code {
+  @apply bg-daily-light px-1.5 py-0.5 rounded text-orange-300 text-sm;
+}
+
+.markdown-content pre {
+  @apply bg-daily-light p-4 rounded-lg overflow-x-auto mb-4;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-content a {
+  @apply text-orange-400 hover:text-orange-300 underline;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-orange-500 pl-4 italic text-gray-400 my-4;
+}

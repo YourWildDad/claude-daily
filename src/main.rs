@@ -5,6 +5,7 @@ mod jobs;
 mod transcript;
 mod archive;
 mod summarizer;
+mod server;
 
 use anyhow::Result;
 use clap::Parser;
@@ -70,6 +71,9 @@ async fn main() -> Result<()> {
                     cli::commands::jobs::cleanup(days, dry_run).await
                 }
             }
+        }
+        Commands::Show { port, host, no_open } => {
+            cli::commands::show::run(port, host, !no_open).await
         }
     }
 }
