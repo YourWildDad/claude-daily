@@ -164,19 +164,19 @@ function App() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-5xl md:text-6xl font-bold text-gray-100 mb-6">
-              Auto Log
+              Context That
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-300">
-                Your Work · Life · Code
+                Compounds
               </span>
             </h1>
             <p className="text-xl text-gray-400 mb-4 max-w-2xl mx-auto">
-              Seamlessly record every Claude Code session.
-              No extra steps, no manual notes.
-              Just code - Daily captures your journey automatically.
+              Auto-record. Reusable context. Skills that grow.
+              <br />
+              The longer you use it, the stronger you become.
             </p>
             <p className="text-lg text-gray-500 mb-8 max-w-2xl mx-auto">
-              Too many sessions to remember? Automatically distill reusable workflows from your coding journey.
+              Daily automatically archives your Claude Code sessions, distills reusable skills, and builds your personal knowledge base over time.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <code className="px-4 py-3 bg-[#1a1a1a] text-orange-400 rounded-lg text-sm font-mono border border-orange-500/30">
@@ -327,8 +327,8 @@ function App() {
       {/* Installation Section */}
       <section id="install" className="py-24 px-6 bg-gradient-to-br from-orange-600 to-orange-700">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6 text-black">Start Auto Logging</h2>
-          <p className="text-orange-900 mb-8">One command to begin your seamless dev journal</p>
+          <h2 className="text-3xl font-bold mb-6 text-black">Start Compounding</h2>
+          <p className="text-orange-900 mb-8">One command to build context that grows with you</p>
 
           <div className="bg-[#0a0a0a]/90 rounded-xl p-6 mb-8 font-mono text-left overflow-x-auto border border-orange-400/30">
             <div className="text-orange-400/70 mb-2"># One-line install</div>
