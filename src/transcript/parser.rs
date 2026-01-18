@@ -59,6 +59,48 @@ impl TranscriptData {
 pub struct TranscriptParser;
 
 impl TranscriptParser {
+    /// Extract message content from a transcript entry
+    /// Handles both old format (content field) and new format (message.content in extra)
+    fn extract_message_content(entry: &TranscriptEntry) -> Option<String> {
+        // First try the old format: direct content field
+        if let Some(content) = &entry.content {
+            if let Some(text) = content.as_str() {
+                return Some(text.to_string());
+            }
+        }
+
+        // Try new format: message.content in extra fields
+        if let Some(message) = entry.extra.get("message") {
+            if let Some(content) = message.get("content") {
+                // Content can be a string or an array of content blocks
+                if let Some(text) = content.as_str() {
+                    return Some(text.to_string());
+                }
+
+                // If it's an array, extract text from content blocks
+                if let Some(arr) = content.as_array() {
+                    let texts: Vec<String> = arr
+                        .iter()
+                        .filter_map(|block| {
+                            // Extract "text" type content blocks
+                            if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                                block.get("text").and_then(|t| t.as_str()).map(String::from)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+
+                    if !texts.is_empty() {
+                        return Some(texts.join("\n"));
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     /// Parse a transcript file and extract relevant information
     pub fn parse<P: AsRef<Path>>(path: P) -> Result<TranscriptData> {
         let file = File::open(path.as_ref()).context("Failed to open transcript file")?;
@@ -80,20 +122,22 @@ impl TranscriptParser {
             match serde_json::from_str::<TranscriptEntry>(&line) {
                 Ok(entry) => {
                     // Extract user messages
-                    if entry.role.as_deref() == Some("user") {
-                        if let Some(content) = &entry.content {
-                            if let Some(text) = content.as_str() {
-                                user_messages.push(text.to_string());
-                            }
+                    // Support both old format (role: "user") and new format (type: "user")
+                    if entry.role.as_deref() == Some("user")
+                        || entry.entry_type.as_deref() == Some("user")
+                    {
+                        if let Some(text) = Self::extract_message_content(&entry) {
+                            user_messages.push(text);
                         }
                     }
 
                     // Extract assistant messages
-                    if entry.role.as_deref() == Some("assistant") {
-                        if let Some(content) = &entry.content {
-                            if let Some(text) = content.as_str() {
-                                assistant_messages.push(text.to_string());
-                            }
+                    // Support both old format (role: "assistant") and new format (type: "assistant")
+                    if entry.role.as_deref() == Some("assistant")
+                        || entry.entry_type.as_deref() == Some("assistant")
+                    {
+                        if let Some(text) = Self::extract_message_content(&entry) {
+                            assistant_messages.push(text);
                         }
                     }
 
@@ -192,11 +236,13 @@ impl TranscriptParser {
 }
 
 /// Truncate text to a maximum length, adding ellipsis if needed
+/// Handles UTF-8 character boundaries correctly
 fn truncate_text(text: &str, max_len: usize) -> String {
-    if text.len() <= max_len {
+    if text.chars().count() <= max_len {
         text.to_string()
     } else {
-        format!("{}...", &text[..max_len])
+        let truncated: String = text.chars().take(max_len).collect();
+        format!("{}...", truncated)
     }
 }
 
