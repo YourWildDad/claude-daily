@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input};
+use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input, Select};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::install;
 use crate::archive::ArchiveManager;
 use crate::config::{get_config_path, load_config, save_config, Config};
 
@@ -38,8 +39,9 @@ pub async fn run(storage_path: Option<PathBuf>, interactive: bool, use_haiku: bo
         config.storage.path = path;
     }
 
-    // Configure digest settings in interactive mode
+    // Configure language and digest settings in interactive mode
     if interactive {
+        configure_language_interactive(&mut config)?;
         configure_digest_interactive(&mut config)?;
     }
 
@@ -59,11 +61,10 @@ pub async fn run(storage_path: Option<PathBuf>, interactive: bool, use_haiku: bo
 
     println!();
     println!("[daily] Initialization complete!");
+
+    // Automatically install hooks
     println!();
-    println!("Next steps:");
-    println!("  1. Install the plugin: daily install");
-    println!("  2. Configure settings: daily config --show");
-    println!("  3. View archives: daily view");
+    install::run("user".to_string()).await?;
 
     Ok(())
 }
@@ -255,6 +256,29 @@ fn format_path_display(path: &Path) -> String {
 
     let exists = if path.exists() { "" } else { " (will create)" };
     format!("{}{}", path_str, exists)
+}
+
+/// Interactive configuration for language settings
+fn configure_language_interactive(config: &mut Config) -> Result<()> {
+    let theme = ColorfulTheme::default();
+
+    println!();
+    println!("[daily] Language Configuration");
+
+    let languages = ["English", "中文 (Chinese)"];
+    let language_codes = ["en", "zh"];
+
+    let selection = Select::with_theme(&theme)
+        .with_prompt("Select summary language")
+        .items(&languages)
+        .default(0)
+        .interact()
+        .context("Failed to select language")?;
+
+    config.summarization.summary_language = language_codes[selection].to_string();
+    println!("[daily] Summary language set to: {}", languages[selection]);
+
+    Ok(())
 }
 
 /// Interactive configuration for digest settings

@@ -161,15 +161,15 @@ pub enum Commands {
         action: JobsAction,
     },
 
-    /// Initialize configuration
+    /// Initialize configuration (interactive by default)
     Init {
         /// Storage path (default: ~/.claude/daily)
         #[arg(short, long)]
         storage_path: Option<PathBuf>,
 
-        /// Interactive mode: fuzzy search and select directory
-        #[arg(short, long)]
-        interactive: bool,
+        /// Skip interactive prompts, use defaults
+        #[arg(short = 'y', long = "yes")]
+        yes: bool,
 
         /// Use haiku model for summarization (default: sonnet)
         #[arg(long)]

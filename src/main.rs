@@ -18,9 +18,9 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Init {
             storage_path,
-            interactive,
+            yes,
             haiku,
-        } => cli::commands::init::run(storage_path, interactive, haiku).await,
+        } => cli::commands::init::run(storage_path, !yes, haiku).await,
         Commands::Hook { hook_type } => match hook_type {
             HookType::SessionStart => hooks::session_start::handle().await,
             HookType::SessionEnd => hooks::session_end::handle().await,

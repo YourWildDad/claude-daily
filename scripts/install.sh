@@ -115,7 +115,7 @@ post_install() {
     success "Daily has been installed successfully!"
     echo ""
 
-    # Check if directory is in PATH and show warning first
+    # Check if directory is in PATH
     if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
         warn "${install_dir} is not in your PATH"
         echo ""
@@ -123,21 +123,19 @@ post_install() {
         echo ""
         echo "  export PATH=\"\$PATH:${install_dir}\""
         echo ""
-        echo "Then reload your shell or run:"
-        echo ""
-        echo "  source ~/.bashrc  # or source ~/.zshrc"
+
+        # Temporarily add to PATH for this session
+        export PATH="$PATH:${install_dir}"
+        info "Temporarily added ${install_dir} to PATH for this session"
         echo ""
     fi
 
-    echo "Next steps:"
-    echo "  1. Initialize Daily:"
-    echo "     daily init"
+    # Run daily init (interactive by default)
     echo ""
-    echo "  2. Install Claude Code hooks:"
-    echo "     daily install"
+    info "Running initial setup..."
     echo ""
-    echo "  3. View today's archive:"
-    echo "     daily show"
+    "${install_dir}/${BINARY_NAME}" init
+
     echo ""
     echo "For more information, visit:"
     echo "  https://github.com/${REPO}"
