@@ -23,6 +23,7 @@ pub async fn run(
     relative_date: Option<String>,
     date: Option<String>,
     background: bool,
+    force: bool,
 ) -> Result<()> {
     let config = load_config()?;
 
@@ -43,9 +44,20 @@ pub async fn run(
 
     // Check if there are sessions to digest
     let sessions = manager.list_sessions(&target_date)?;
+
+    // Handle no sessions case
     if sessions.is_empty() {
-        eprintln!("[daily] No sessions found for {}", target_date);
-        return Ok(());
+        if force {
+            // Force mode: check if daily.md exists and regenerate
+            if manager.read_daily_summary(&target_date).is_err() {
+                eprintln!("[daily] No sessions and no existing daily.md for {}", target_date);
+                return Ok(());
+            }
+            eprintln!("[daily] Force regenerating daily summary for {}...", target_date);
+        } else {
+            eprintln!("[daily] No sessions found for {}", target_date);
+            return Ok(());
+        }
     }
 
     if background {
@@ -58,8 +70,13 @@ pub async fn run(
 
         let exe = std::env::current_exe().context("Failed to get current executable")?;
 
+        let mut args = vec!["digest", "--date", &target_date];
+        if force {
+            args.push("--force");
+        }
+
         Command::new(&exe)
-            .args(["digest", "--date", &target_date])
+            .args(&args)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -71,33 +88,39 @@ pub async fn run(
     }
 
     // Foreground mode: perform the digest
-    eprintln!(
-        "[daily] Digesting {} sessions for {}...",
-        sessions.len(),
-        target_date
-    );
+    if !sessions.is_empty() {
+        eprintln!(
+            "[daily] Digesting {} sessions for {}...",
+            sessions.len(),
+            target_date
+        );
+    }
 
     let engine = SummarizerEngine::new(config.clone());
 
-    // Generate daily summary from all sessions
+    // Generate daily summary from all sessions (or regenerate if force mode)
     match engine.update_daily_summary(&target_date).await {
         Ok(summary) => {
             let summary_path = summary.save(&config)?;
             eprintln!("[daily] Daily summary created: {}", summary_path.display());
 
-            // Delete session files after successful digest
-            match manager.delete_sessions(&target_date) {
-                Ok(deleted) => {
-                    eprintln!("[daily] Cleaned up {} session files", deleted.len());
-                }
-                Err(e) => {
-                    eprintln!("[daily] Warning: Failed to cleanup session files: {}", e);
+            // Delete session files after successful digest (only if there were sessions)
+            if !sessions.is_empty() {
+                match manager.delete_sessions(&target_date) {
+                    Ok(deleted) => {
+                        eprintln!("[daily] Cleaned up {} session files", deleted.len());
+                    }
+                    Err(e) => {
+                        eprintln!("[daily] Warning: Failed to cleanup session files: {}", e);
+                    }
                 }
             }
         }
         Err(e) => {
             eprintln!("[daily] Error: Failed to create daily summary: {}", e);
-            eprintln!("[daily] Session files preserved for retry");
+            if !sessions.is_empty() {
+                eprintln!("[daily] Session files preserved for retry");
+            }
             return Err(e);
         }
     }

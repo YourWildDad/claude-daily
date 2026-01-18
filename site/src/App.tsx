@@ -3,6 +3,7 @@ import { Scrollama, Step } from 'react-scrollama';
 import { motion, AnimatePresence } from 'framer-motion';
 import DataFlowVisualization from './components/DataFlowVisualization';
 import Docs from './components/Docs';
+import Show from './components/Show';
 import { steps, claudeStructure } from './data/content';
 
 interface StepEnterData {
@@ -16,7 +17,7 @@ interface StepProgressData {
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<'home' | 'docs'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'docs' | 'show'>('home');
 
   const onStepEnter = useCallback(({ data }: StepEnterData) => {
     setCurrentStep(data);
@@ -62,6 +63,16 @@ function App() {
               >
                 Docs
               </button>
+              <button
+                onClick={() => setActiveTab('show')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === 'show'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1a1a]'
+                }`}
+              >
+                Show
+              </button>
             </nav>
           </div>
           <div className="flex items-center gap-4">
@@ -86,6 +97,16 @@ function App() {
                 }`}
               >
                 Docs
+              </button>
+              <button
+                onClick={() => setActiveTab('show')}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  activeTab === 'show'
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'text-gray-400'
+                }`}
+              >
+                Show
               </button>
             </div>
             <a
@@ -127,6 +148,9 @@ function App() {
 
       {/* Docs Tab */}
       {activeTab === 'docs' && <Docs />}
+
+      {/* Show Tab */}
+      {activeTab === 'show' && <Show />}
 
       {/* Home Tab */}
       {activeTab === 'home' && (

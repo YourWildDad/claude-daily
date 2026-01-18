@@ -46,7 +46,8 @@ async fn main() -> Result<()> {
             relative_date,
             date,
             background,
-        } => cli::commands::digest::run(relative_date, date, background).await,
+            force,
+        } => cli::commands::digest::run(relative_date, date, background, force).await,
         Commands::ExtractSkill {
             date,
             session,
@@ -64,6 +65,7 @@ async fn main() -> Result<()> {
             cli::commands::config::run(set_storage, show).await
         }
         Commands::Install { scope } => cli::commands::install::run(scope).await,
+        Commands::Update { check, version } => cli::commands::update::run(check, version).await,
         Commands::Jobs { action } => match action {
             JobsAction::List { all } => cli::commands::jobs::list(all).await,
             JobsAction::Log {

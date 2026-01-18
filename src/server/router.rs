@@ -15,6 +15,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         // Date/Archive routes
         .route("/dates", get(handlers::list_dates))
         .route("/dates/:date", get(handlers::get_daily_summary))
+        .route("/dates/:date/digest", post(handlers::trigger_digest))
         .route("/dates/:date/sessions", get(handlers::list_sessions))
         .route("/dates/:date/sessions/:name", get(handlers::get_session))
         // Job routes

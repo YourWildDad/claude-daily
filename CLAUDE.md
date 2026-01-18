@@ -23,6 +23,27 @@ cargo test -- --nocapture      # Show test output
 cargo install --path .
 ```
 
+## Project Structure
+
+```
+daily/
+├── src/              # Rust CLI source code (daily binary)
+├── site/             # Product website (marketing/docs) - React + Vite
+│                     # Run: cd site && npm run dev
+├── web/              # Dashboard UI for `daily show` - React + Vite
+│                     # Run: cd web && npm run dev
+│                     # Served by Rust server at runtime
+├── hooks/            # Claude Code hook shell scripts (installed to ~/.claude/hooks/)
+├── commands/         # Claude Code slash command templates (installed to ~/.claude/commands/)
+├── scripts/          # Installation scripts (install.sh)
+├── assets/           # Documentation assets (dataflow.png, screenshots)
+└── .github/          # CI/CD workflows
+```
+
+**Important distinction**:
+- `site/` = Public website for promotion and documentation
+- `web/` = User-facing dashboard embedded in `daily show` command
+
 ## Architecture Overview
 
 Daily is a context archive system for Claude Code that automatically records and summarizes AI-assisted work sessions using Claude Code hooks.

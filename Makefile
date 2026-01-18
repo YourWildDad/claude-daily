@@ -1,17 +1,25 @@
 # Daily - Context Archive System for Claude Code
 # Makefile for local development
 
-.PHONY: build release install install-plugin reinstall clean test check fmt help
+.PHONY: build release install install-plugin reinstall clean test check fmt help web web-install
 
 # Default target
 .DEFAULT_GOAL := help
 
+# Install web dependencies
+web-install:
+	cd web && npm install
+
+# Build web frontend
+web:
+	cd web && npm run build
+
 # Build debug version
-build:
+build: web
 	cargo build
 
 # Build release version
-release:
+release: web
 	cargo build --release
 
 # Install binary to ~/.cargo/bin
@@ -64,8 +72,10 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  build          Build debug version"
-	@echo "  release        Build release version"
+	@echo "  web-install    Install web frontend dependencies"
+	@echo "  web            Build web frontend only"
+	@echo "  build          Build debug version (includes web)"
+	@echo "  release        Build release version (includes web)"
 	@echo "  install        Build release and install binary"
 	@echo "  install-plugin Install skills and hooks to ~/.claude/"
 	@echo "  reinstall      Full reinstall (build + binary + plugin)"

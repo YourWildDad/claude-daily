@@ -266,8 +266,79 @@ export default function Docs() {
               <div className="text-gray-500 pl-8">daily.md        <span className="text-gray-600"># Consolidated daily summary</span></div>
               <div className="text-gray-500 pl-8">my-project.md   <span className="text-gray-600"># Session archive (before digest)</span></div>
               <div className="text-gray-500 pl-8">another-task.md</div>
+              <div className="text-gray-400 pl-4">pending-skills/</div>
+              <div className="text-gray-500 pl-8">2024-01-15/     <span className="text-gray-600"># Auto-extracted skills awaiting review</span></div>
               <div className="text-gray-400 pl-4">jobs/</div>
               <div className="text-gray-500 pl-8">*.json          <span className="text-gray-600"># Background job metadata</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Skill Sedimentation */}
+      <section className="px-6 pb-16">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-100 mb-2">Skill Sedimentation</h2>
+          <p className="text-gray-400 mb-6">Auto-extract reusable knowledge from your coding sessions</p>
+
+          {/* Flow */}
+          <div className="bg-[#1a1a1a] rounded-xl p-6 border border-orange-500/20 mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+              {[
+                { icon: '🔚', label: 'Session End' },
+                { icon: '🤖', label: 'AI Summarize' },
+                { icon: '🚪', label: 'Quality Gate' },
+                { icon: '📦', label: 'Pending' },
+                { icon: '👀', label: 'Review' },
+                { icon: '✅', label: 'Installed' },
+              ].map((step, i, arr) => (
+                <div key={step.label} className="flex items-center gap-2">
+                  <div className="flex flex-col items-center px-2">
+                    <span className="text-xl">{step.icon}</span>
+                    <span className="text-gray-400 text-xs mt-1">{step.label}</span>
+                  </div>
+                  {i < arr.length - 1 && <span className="text-gray-600">→</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quality Gate */}
+          <div className="bg-[#1a1a1a] rounded-xl p-6 border border-orange-500/20 mb-6">
+            <h3 className="text-lg font-semibold text-orange-400 mb-3">🚪 Quality Gate (沉淀三问)</h3>
+            <p className="text-gray-500 text-sm mb-4">All three must be <span className="text-orange-400">YES</span> to pass:</p>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="bg-[#0f0f0f] rounded-lg p-3">
+                <div className="text-gray-200 font-medium text-sm">踩过坑吗？</div>
+                <div className="text-gray-500 text-xs mt-1">Debugging or non-obvious discovery?</div>
+              </div>
+              <div className="bg-[#0f0f0f] rounded-lg p-3">
+                <div className="text-gray-200 font-medium text-sm">下次还会遇到吗？</div>
+                <div className="text-gray-500 text-xs mt-1">Recurring problem, not edge case?</div>
+              </div>
+              <div className="bg-[#0f0f0f] rounded-lg p-3">
+                <div className="text-gray-200 font-medium text-sm">能说清楚吗？</div>
+                <div className="text-gray-500 text-xs mt-1">Can describe & verify solution?</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Commands */}
+          <div className="bg-[#1a1a1a] rounded-xl p-6 border border-orange-500/20">
+            <h3 className="text-lg font-semibold text-orange-400 mb-3">Commands</h3>
+            <div className="space-y-2 font-mono text-sm">
+              <div className="flex gap-4">
+                <code className="text-orange-300">daily review-skills</code>
+                <span className="text-gray-500">List pending skills</span>
+              </div>
+              <div className="flex gap-4">
+                <code className="text-orange-300">daily review-skills --install DATE/NAME</code>
+                <span className="text-gray-500">Install</span>
+              </div>
+              <div className="flex gap-4">
+                <code className="text-orange-300">/daily-get-skill</code>
+                <span className="text-gray-500">Manual extract in Claude Code</span>
+              </div>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ use crate::transcript::TranscriptParser;
 /// Response structure from session summarization
 #[derive(Debug, Deserialize)]
 struct SessionSummaryResponse {
+    topic: String,
     summary: String,
     decisions: String,
     learnings: String,
@@ -113,7 +114,7 @@ impl SummarizerEngine {
     pub async fn summarize_session(
         &self,
         transcript_path: &std::path::Path,
-        task_name: &str,
+        _task_name: &str,
         cwd: &str,
     ) -> Result<SessionArchive> {
         // Parse transcript
@@ -133,22 +134,28 @@ impl SummarizerEngine {
         let summary_response: SessionSummaryResponse =
             serde_json::from_str(&json_str).context("Failed to parse summary response")?;
 
+        // Build title from time + AI-generated topic
+        // Format: HH_MM-topic (e.g., "14_55-fix-auth-bug")
+        let now = chrono::Local::now();
+        let time_prefix = now.format("%H_%M").to_string();
+        let topic = sanitize_topic(&summary_response.topic);
+        let title = format!("{}-{}", time_prefix, topic);
+
         // Build archive
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = now.format("%Y-%m-%d").to_string();
         let session_id = transcript_path
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let archive =
-            SessionArchive::new(task_name.to_string(), today, session_id, cwd.to_string())
-                .with_transcript_data(&transcript_data)
-                .with_summary(
-                    summary_response.summary,
-                    summary_response.decisions,
-                    summary_response.learnings,
-                    summary_response.skill_hints,
-                );
+        let archive = SessionArchive::new(title, today, session_id, cwd.to_string())
+            .with_transcript_data(&transcript_data)
+            .with_summary(
+                summary_response.summary,
+                summary_response.decisions,
+                summary_response.learnings,
+                summary_response.skill_hints,
+            );
 
         // Set git branch
         let mut archive = archive;
@@ -164,12 +171,15 @@ impl SummarizerEngine {
         // Get all sessions for this date
         let sessions = manager.list_sessions(date)?;
 
-        if sessions.is_empty() {
-            // Return empty summary
+        // Read existing daily summary if it exists (for incremental digest or regeneration)
+        let existing_summary = manager.read_daily_summary(date).ok();
+
+        // If no sessions and no existing summary, return empty
+        if sessions.is_empty() && existing_summary.is_none() {
             return Ok(DailySummary::new(date.to_string()));
         }
 
-        // Collect session summaries
+        // Collect session summaries (may be empty in force-regenerate mode)
         let mut session_data = Vec::new();
         for session_name in &sessions {
             if let Ok(content) = manager.read_session(date, session_name) {
@@ -184,8 +194,8 @@ impl SummarizerEngine {
 
         let sessions_json = serde_json::to_string_pretty(&session_data)?;
 
-        // Build prompt and invoke Claude
-        let prompt = Prompts::daily_summary(&sessions_json, date);
+        // Build prompt and invoke Claude (with existing summary if present)
+        let prompt = Prompts::daily_summary(&sessions_json, date, existing_summary.as_deref());
         let response = self.invoke_claude(&prompt)?;
         let json_str = self.extract_json(&response)?;
 
@@ -229,6 +239,46 @@ impl SummarizerEngine {
 
         // Extract markdown from response
         extract_markdown_from_response(&response)
+    }
+}
+
+/// Sanitize topic for use in filename
+fn sanitize_topic(topic: &str) -> String {
+    // Convert to lowercase, replace spaces with hyphens, remove invalid chars
+    let sanitized: String = topic
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'a'..='z' | '0'..='9' | '-' => c,
+            ' ' | '_' => '-',
+            _ => '-',
+        })
+        .collect();
+
+    // Remove consecutive hyphens and trim
+    let mut result = String::new();
+    let mut prev_hyphen = false;
+    for c in sanitized.chars() {
+        if c == '-' {
+            if !prev_hyphen && !result.is_empty() {
+                result.push(c);
+            }
+            prev_hyphen = true;
+        } else {
+            result.push(c);
+            prev_hyphen = false;
+        }
+    }
+
+    // Trim trailing hyphen and limit length
+    let result = result.trim_end_matches('-').to_string();
+    if result.len() > 50 {
+        result[..50].trim_end_matches('-').to_string()
+    } else if result.is_empty() {
+        "session".to_string()
+    } else {
+        result
     }
 }
 

@@ -27,7 +27,6 @@ export interface SessionDetail {
     cwd?: string
     git_branch?: string
     duration?: string
-    tool_calls?: number
   }
 }
 
@@ -38,6 +37,11 @@ export interface Job {
   status_type: 'running' | 'completed' | 'failed'
   started_at: string
   elapsed: string
+}
+
+export interface DigestResponse {
+  message: string
+  session_count: number
 }
 
 interface ApiResponse<T> {
@@ -113,6 +117,11 @@ export function useApi() {
     [request]
   )
 
+  const triggerDigest = useCallback(
+    (date: string) => request<DigestResponse>(`/dates/${date}/digest`, { method: 'POST' }),
+    [request]
+  )
+
   return {
     loading,
     error,
@@ -124,5 +133,6 @@ export function useApi() {
     fetchJob,
     fetchJobLog,
     killJob,
+    triggerDigest,
   }
 }

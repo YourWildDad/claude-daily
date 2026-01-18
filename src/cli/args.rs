@@ -108,6 +108,10 @@ pub enum Commands {
         /// Run in background (default: foreground)
         #[arg(long)]
         background: bool,
+
+        /// Force regenerate daily summary even without session files (re-process existing daily.md)
+        #[arg(short, long)]
+        force: bool,
     },
 
     /// Extract skill from archive
@@ -184,6 +188,17 @@ pub enum Commands {
         /// Scope: user or project
         #[arg(short, long, default_value = "user")]
         scope: String,
+    },
+
+    /// Update daily to the latest version
+    Update {
+        /// Only check for updates, don't install
+        #[arg(long)]
+        check: bool,
+
+        /// Install specific version (e.g., "v0.2.0" or "0.2.0")
+        #[arg(long)]
+        version: Option<String>,
     },
 
     /// Handle Claude Code hooks (internal use)

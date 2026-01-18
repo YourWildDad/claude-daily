@@ -5,12 +5,15 @@ import { useApi } from '../hooks/useApi'
 import type { DailySummary, Session } from '../hooks/useApi'
 import { SessionCard } from '../components/SessionCard'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
+import { cn } from '../lib/utils'
 
 export function DayDetail() {
   const { date } = useParams<{ date: string }>()
   const [summary, setSummary] = useState<DailySummary | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
-  const { fetchDailySummary, fetchSessions, loading, error } = useApi()
+  const [digestLoading, setDigestLoading] = useState(false)
+  const [digestMessage, setDigestMessage] = useState<string | null>(null)
+  const { fetchDailySummary, fetchSessions, triggerDigest, loading, error } = useApi()
 
   useEffect(() => {
     if (!date) return
@@ -19,6 +22,20 @@ export function DayDetail() {
       fetchSessions(date).then(setSessions),
     ]).catch(console.error)
   }, [date, fetchDailySummary, fetchSessions])
+
+  const handleDigest = async () => {
+    if (!date || digestLoading) return
+    setDigestLoading(true)
+    setDigestMessage(null)
+    try {
+      const response = await triggerDigest(date)
+      setDigestMessage(response.message)
+    } catch (err) {
+      setDigestMessage(err instanceof Error ? err.message : 'Failed to start digest')
+    } finally {
+      setDigestLoading(false)
+    }
+  }
 
   if (loading && !summary) {
     return (
@@ -43,7 +60,54 @@ export function DayDetail() {
         <span className="text-orange-400">{date}</span>
       </nav>
 
-      <h1 className="text-3xl font-bold mb-8 text-balance">{date}</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-balance">{date}</h1>
+        {sessions.length > 0 && (
+          <button
+            onClick={handleDigest}
+            disabled={digestLoading}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+              'border border-orange-500/30 hover:border-orange-500/50',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            {digestLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                Digesting...
+              </span>
+            ) : (
+              'Digest'
+            )}
+          </button>
+        )}
+      </div>
+
+      {digestMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 text-orange-400 mb-6"
+        >
+          {digestMessage}
+        </motion.div>
+      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 mb-6">

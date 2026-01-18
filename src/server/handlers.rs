@@ -180,6 +180,59 @@ pub async fn kill_job(
     }
 }
 
+/// Trigger digest for a specific date
+pub async fn trigger_digest(
+    State(state): State<Arc<AppState>>,
+    Path(date): Path<String>,
+) -> impl IntoResponse {
+    let manager = ArchiveManager::new(state.config.clone());
+
+    // Check if there are sessions to digest
+    match manager.list_sessions(&date) {
+        Ok(sessions) => {
+            if sessions.is_empty() {
+                return Json(ApiResponse::<DigestResponse>::error(format!(
+                    "No sessions found for {}",
+                    date
+                )));
+            }
+
+            // Spawn background digest process
+            let exe = match std::env::current_exe() {
+                Ok(e) => e,
+                Err(e) => {
+                    return Json(ApiResponse::<DigestResponse>::error(format!(
+                        "Failed to get executable: {}",
+                        e
+                    )));
+                }
+            };
+
+            match std::process::Command::new(&exe)
+                .args(["digest", "--date", &date])
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+            {
+                Ok(_) => Json(ApiResponse::success(DigestResponse {
+                    message: format!(
+                        "Digest started for {} ({} sessions)",
+                        date,
+                        sessions.len()
+                    ),
+                    session_count: sessions.len(),
+                })),
+                Err(e) => Json(ApiResponse::<DigestResponse>::error(format!(
+                    "Failed to start digest: {}",
+                    e
+                ))),
+            }
+        }
+        Err(e) => Json(ApiResponse::<DigestResponse>::error(e.to_string())),
+    }
+}
+
 /// Health check endpoint
 pub async fn health_check() -> impl IntoResponse {
     (StatusCode::OK, "OK")
@@ -269,8 +322,9 @@ fn extract_session_preview(content: &str) -> (String, String) {
             .map(|i| start + i)
             .unwrap_or_else(|| (start + 300).min(content.len()));
         let text = content[start..end].trim();
-        if text.len() > 200 {
-            format!("{}...", &text[..200])
+        if text.chars().count() > 200 {
+            let truncated: String = text.chars().take(200).collect();
+            format!("{}...", truncated)
         } else {
             text.to_string()
         }
@@ -299,7 +353,6 @@ fn extract_session_metadata(content: &str) -> SessionMetadata {
                         "cwd" => metadata.cwd = Some(value.to_string()),
                         "git_branch" => metadata.git_branch = Some(value.to_string()),
                         "duration" => metadata.duration = Some(value.to_string()),
-                        "tool_calls" => metadata.tool_calls = value.parse().ok(),
                         _ => {}
                     }
                 }

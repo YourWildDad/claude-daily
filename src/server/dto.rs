@@ -78,7 +78,6 @@ pub struct SessionMetadata {
     pub cwd: Option<String>,
     pub git_branch: Option<String>,
     pub duration: Option<String>,
-    pub tool_calls: Option<usize>,
 }
 
 /// Job DTO for API responses
@@ -127,6 +126,13 @@ impl From<JobInfo> for JobDto {
 pub struct JobLogDto {
     pub id: String,
     pub content: String,
+}
+
+/// Digest trigger response
+#[derive(Serialize)]
+pub struct DigestResponse {
+    pub message: String,
+    pub session_count: usize,
 }
 
 /// WebSocket message types
