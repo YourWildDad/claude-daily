@@ -68,9 +68,9 @@ daily show
 
 Daily automatically identifies and extracts reusable knowledge from your sessions. When a session ends, it evaluates whether the work contains skills worth preserving using the **"Three Questions" quality gate**:
 
-1. **踩过坑吗？** (Did you hit a wall?) - Was there debugging, trial-and-error, or non-obvious discovery?
-2. **下次还会遇到吗？** (Will it happen again?) - Is this a recurring problem, not a one-time edge case?
-3. **能说清楚吗？** (Can you explain it?) - Can the solution be clearly described and verified?
+1. **Did you hit a wall?**  - Was there debugging, trial-and-error, or non-obvious discovery?
+2. **Will it happen again?** - Is this a recurring problem, not a one-time edge case?
+3. **Can you explain it?** - Can the solution be clearly described and verified?
 
 ### How It Works
 
