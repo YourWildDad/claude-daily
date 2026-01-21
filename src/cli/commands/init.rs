@@ -84,24 +84,30 @@ fn expand_path(path: &Path) -> PathBuf {
 fn select_directory_interactive() -> Result<Option<PathBuf>> {
     let theme = ColorfulTheme::default();
 
-    // Ask user for search keyword with default hint
-    let keyword: String = dialoguer::Input::with_theme(&theme)
-        .with_prompt("Enter keyword to search directories [default: ~/.claude/daily]")
-        .default(String::new())
-        .show_default(false)
-        .allow_empty(true)
+    // Ask user for storage path with default
+    let input: String = dialoguer::Input::with_theme(&theme)
+        .with_prompt("Daily archive folder (e.g., '~/obsidian-vault/daily', '~/.claude/daily')")
+        .default("~/.claude/daily".into())
         .interact_text()
         .context("Failed to read input")?;
 
-    let candidates = if keyword.trim().is_empty() {
-        // No keyword: use default suggestions
-        collect_default_candidates()
-    } else {
-        // Search recursively for matching directories
-        println!("[daily] Searching for '{}'...", keyword);
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        search_directories_recursive(&home, &keyword.to_lowercase(), 10)
-    };
+    let input = input.trim();
+
+    // If user entered the default or empty, use default path
+    if input.is_empty() || input == "~/.claude/daily" {
+        return Ok(Some(expand_path(Path::new("~/.claude/daily"))));
+    }
+
+    // Check if input looks like a path (contains / or ~)
+    if input.contains('/') || input.starts_with('~') {
+        // User entered a direct path
+        return Ok(Some(expand_path(Path::new(input))));
+    }
+
+    // Otherwise treat as keyword search
+    println!("[daily] Searching for '{}'...", input);
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let candidates = search_directories_recursive(&home, &input.to_lowercase(), 10);
 
     if candidates.is_empty() {
         println!("[daily] No matching directories found. Using default path.");
@@ -129,26 +135,12 @@ fn select_directory_interactive() -> Result<Option<PathBuf>> {
     match selection {
         Some(idx) => {
             let selected = &candidates[idx];
-            // If selected path doesn't end with "daily", offer to create subdirectory
+            // If selected path doesn't end with "daily", append it
             let final_path = if !selected.ends_with("daily") {
-                let create_subdir: bool = dialoguer::Confirm::with_theme(&theme)
-                    .with_prompt(format!(
-                        "Create 'daily' subdirectory in {}?",
-                        selected.display()
-                    ))
-                    .default(true)
-                    .interact()
-                    .unwrap_or(true);
-
-                if create_subdir {
-                    selected.join("daily")
-                } else {
-                    selected.clone()
-                }
+                selected.join("daily")
             } else {
                 selected.clone()
             };
-
             Ok(Some(final_path))
         }
         None => {
@@ -156,16 +148,6 @@ fn select_directory_interactive() -> Result<Option<PathBuf>> {
             Ok(None)
         }
     }
-}
-
-/// Collect default directory candidates (no search)
-fn collect_default_candidates() -> Vec<PathBuf> {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    vec![
-        home.join(".claude").join("daily"),
-        home.join("Documents").join("daily"),
-        home.join("daily"),
-    ]
 }
 
 /// Recursively search for directories matching the keyword
