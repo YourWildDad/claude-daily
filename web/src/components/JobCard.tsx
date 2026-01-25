@@ -9,6 +9,31 @@ interface JobCardProps {
 export function JobCard({ job, onKill }: JobCardProps) {
   const isRunning = job.status_type === 'running'
   const isFailed = job.status_type === 'failed'
+  const isAutoSummarize = job.job_type === 'auto_summarize'
+
+  const getJobTypeLabel = (type: string) => {
+    switch (type) {
+      case 'session_end':
+        return 'Session End'
+      case 'auto_summarize':
+        return 'Auto Summarize'
+      case 'manual':
+        return 'Manual'
+      default:
+        return type
+    }
+  }
+
+  const getJobTypeBadgeClass = (type: string) => {
+    switch (type) {
+      case 'auto_summarize':
+        return 'bg-blue-500/20 text-blue-400'
+      case 'session_end':
+        return 'bg-purple-500/20 text-purple-400'
+      default:
+        return 'bg-gray-500/20 text-gray-400'
+    }
+  }
 
   return (
     <div
@@ -35,6 +60,24 @@ export function JobCard({ job, onKill }: JobCardProps) {
             <span className="font-medium text-gray-100 truncate">
               {job.task_name}
             </span>
+            {/* Job type badge */}
+            <span
+              className={cn(
+                'px-2 py-0.5 text-xs rounded-full',
+                getJobTypeBadgeClass(job.job_type)
+              )}
+            >
+              {getJobTypeLabel(job.job_type)}
+            </span>
+            {/* Auto-summarize indicator */}
+            {isAutoSummarize && (
+              <span
+                className="text-xs text-blue-400"
+                title="Automatically triggered summarization"
+              >
+                🤖
+              </span>
+            )}
           </div>
 
           <div className="text-sm text-gray-500 space-y-1">

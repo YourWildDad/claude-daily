@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useApi } from '../hooks/useApi'
 import type { Config, DefaultTemplates } from '../hooks/useApi'
-import { PromptTemplateEditor } from '../components/PromptTemplateEditor'
+import { TemplateEditor } from '../components/TemplateEditor'
+import { EXAMPLE_DATA } from '../data/templateExamples'
+import { cn } from '../lib/utils'
 
 // Variable definitions for each template type
 const TEMPLATE_VARIABLES = {
@@ -35,12 +37,31 @@ const TEMPLATE_VARIABLES = {
   ],
 }
 
+const NAV_SECTIONS = {
+  general: [
+    { id: 'language', label: 'Summary Language', icon: '🌐' },
+    { id: 'model', label: 'Model', icon: '🤖' },
+    { id: 'features', label: 'Features', icon: '⚙️' },
+    { id: 'digest-time', label: 'Digest Time', icon: '⏰' },
+    { id: 'author', label: 'Author', icon: '✍️' },
+    { id: 'info', label: 'Storage Info', icon: '💾' },
+  ],
+  templates: [
+    { id: 'session-template', label: 'Session Template', icon: '📝' },
+    { id: 'daily-template', label: 'Daily Template', icon: '📅' },
+    { id: 'skill-template', label: 'Skill Template', icon: '🎯' },
+    { id: 'command-template', label: 'Command Template', icon: '⌨️' },
+  ],
+}
+
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null)
   const [defaultTemplates, setDefaultTemplates] = useState<DefaultTemplates | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [authorInput, setAuthorInput] = useState('')
+  const [activeSection, setActiveSection] = useState('language')
+  const contentRef = useRef<HTMLDivElement>(null)
   const { fetchConfig, updateConfig, fetchDefaultTemplates, error } = useApi()
 
   const loadConfig = useCallback(() => {
@@ -84,297 +105,374 @@ export function Settings() {
     }
   }
 
+  const scrollToSection = (id: string) => {
+    setActiveSection(id)
+    // Wait for DOM to update before scrolling
+    setTimeout(() => {
+      const element = document.getElementById(id)
+      if (element && contentRef.current) {
+        const container = contentRef.current
+        const elementTop = element.offsetTop - container.offsetTop
+        container.scrollTo({ top: elementTop - 20, behavior: 'smooth' })
+      }
+    }, 0)
+  }
+
   if (!config) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-balance">Settings</h1>
-        <p className="text-gray-500 mt-2">Configure Daily summarization options</p>
-      </div>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 mb-6">
-          {error}
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Left Navigation */}
+      <aside className="w-64 shrink-0 border-r border-gray-800 bg-black overflow-y-auto">
+        <div className="p-4 border-b border-gray-800">
+          <h2 className="text-lg font-semibold text-orange-400">Settings</h2>
+          <p className="text-xs text-gray-500 mt-1">Configure Daily options</p>
         </div>
-      )}
-
-      {saveMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-green-400 mb-6"
-        >
-          {saveMessage}
-        </motion.div>
-      )}
-
-      <div className="space-y-6">
-        {/* Summary Language */}
-        <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">Summary Language</h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Choose the language for AI-generated summaries and digests
-          </p>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="summary_language"
-                value="en"
-                checked={config.summary_language === 'en'}
-                onChange={(e) => handleChange('summary_language', e.target.value)}
-                disabled={saving}
-                className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-              <span className="text-gray-200">English</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="summary_language"
-                value="zh"
-                checked={config.summary_language === 'zh'}
-                onChange={(e) => handleChange('summary_language', e.target.value)}
-                disabled={saving}
-                className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-              <span className="text-gray-200">Chinese / 中文</span>
-            </label>
-          </div>
-        </section>
-
-        {/* Model Selection */}
-        <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">Summarization Model</h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Choose the Claude model for generating summaries
-          </p>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="model"
-                value="sonnet"
-                checked={config.model === 'sonnet'}
-                onChange={(e) => handleChange('model', e.target.value)}
-                disabled={saving}
-                className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-              <span className="text-gray-200">Sonnet (smarter)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="model"
-                value="haiku"
-                checked={config.model === 'haiku'}
-                onChange={(e) => handleChange('model', e.target.value)}
-                disabled={saving}
-                className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-              <span className="text-gray-200">Haiku (faster, cheaper)</span>
-            </label>
-          </div>
-        </section>
-
-        {/* Feature Toggles */}
-        <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">Features</h2>
-          <div className="space-y-4">
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-gray-200">Enable Daily Summary</span>
-                <p className="text-gray-500 text-sm">Generate daily digest from session summaries</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.enable_daily_summary}
-                onChange={(e) => handleChange('enable_daily_summary', e.target.checked)}
-                disabled={saving}
-                className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-gray-200">Enable Extraction Hints</span>
-                <p className="text-gray-500 text-sm">Suggest potential skills and commands to extract</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.enable_extraction_hints}
-                onChange={(e) => handleChange('enable_extraction_hints', e.target.checked)}
-                disabled={saving}
-                className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-gray-200">Auto Digest</span>
-                <p className="text-gray-500 text-sm">Automatically digest previous day's sessions on session start</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.auto_digest_enabled}
-                onChange={(e) => handleChange('auto_digest_enabled', e.target.checked)}
-                disabled={saving}
-                className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
-              />
-            </label>
-          </div>
-        </section>
-
-        {/* Digest Time */}
-        <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">Digest Time</h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Time to auto-digest previous day's sessions (format: HH:MM)
-          </p>
-          <input
-            type="time"
-            value={config.digest_time}
-            onChange={(e) => handleChange('digest_time', e.target.value)}
-            disabled={saving}
-            className="bg-daily-dark border border-gray-600 rounded-lg px-4 py-2 text-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-          />
-        </section>
-
-        {/* Author */}
-        <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">Author</h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Author name for archive metadata (optional)
-          </p>
-          <input
-            type="text"
-            value={authorInput}
-            onChange={(e) => setAuthorInput(e.target.value)}
-            onBlur={(e) => {
-              if (e.target.value !== (config.author || '')) {
-                handleChange('author', e.target.value)
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.currentTarget.blur()
-              }
-            }}
-            disabled={saving}
-            placeholder="Enter author name..."
-            className="w-full bg-daily-dark border border-gray-600 rounded-lg px-4 py-2 text-gray-200 placeholder-gray-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-          />
-        </section>
-
-        {/* Prompt Templates */}
-        {defaultTemplates && (
-          <section className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-orange-400 mb-2">Prompt Templates</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Customize the AI prompts used for summarization. Use {'{{variable}}'} syntax for dynamic values.
-            </p>
-            <div className="space-y-3">
-              <PromptTemplateEditor
-                title="Session Summary"
-                description="Template for summarizing individual sessions"
-                currentValue={config.prompt_templates.session_summary}
-                defaultValue={
-                  config.summary_language === 'zh'
-                    ? defaultTemplates.session_summary_zh
-                    : defaultTemplates.session_summary_en
-                }
-                availableVariables={TEMPLATE_VARIABLES.session_summary}
-                onSave={async (value) => {
-                  const updated = await updateConfig({
-                    prompt_templates: { session_summary: value },
-                  })
-                  setConfig(updated)
-                }}
-                disabled={saving}
-              />
-
-              <PromptTemplateEditor
-                title="Daily Summary"
-                description="Template for generating daily digests"
-                currentValue={config.prompt_templates.daily_summary}
-                defaultValue={
-                  config.summary_language === 'zh'
-                    ? defaultTemplates.daily_summary_zh
-                    : defaultTemplates.daily_summary_en
-                }
-                availableVariables={TEMPLATE_VARIABLES.daily_summary}
-                onSave={async (value) => {
-                  const updated = await updateConfig({
-                    prompt_templates: { daily_summary: value },
-                  })
-                  setConfig(updated)
-                }}
-                disabled={saving}
-              />
-
-              <PromptTemplateEditor
-                title="Skill Extraction"
-                description="Template for extracting reusable skills from sessions"
-                currentValue={config.prompt_templates.skill_extract}
-                defaultValue={
-                  config.summary_language === 'zh'
-                    ? defaultTemplates.skill_extract_zh
-                    : defaultTemplates.skill_extract_en
-                }
-                availableVariables={TEMPLATE_VARIABLES.skill_extract}
-                onSave={async (value) => {
-                  const updated = await updateConfig({
-                    prompt_templates: { skill_extract: value },
-                  })
-                  setConfig(updated)
-                }}
-                disabled={saving}
-              />
-
-              <PromptTemplateEditor
-                title="Command Extraction"
-                description="Template for extracting slash commands from sessions"
-                currentValue={config.prompt_templates.command_extract}
-                defaultValue={
-                  config.summary_language === 'zh'
-                    ? defaultTemplates.command_extract_zh
-                    : defaultTemplates.command_extract_en
-                }
-                availableVariables={TEMPLATE_VARIABLES.command_extract}
-                onSave={async (value) => {
-                  const updated = await updateConfig({
-                    prompt_templates: { command_extract: value },
-                  })
-                  setConfig(updated)
-                }}
-                disabled={saving}
-              />
+        <nav className="p-3">
+          {/* General Settings */}
+          <div className="mb-4">
+            <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              General
+            </h3>
+            <div className="space-y-1">
+              {NAV_SECTIONS.general.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    activeSection === item.id
+                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                      : 'hover:bg-daily-light text-gray-400 hover:text-gray-200'
+                  )}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
             </div>
-          </section>
+          </div>
+
+          {/* Template Settings */}
+          <div>
+            <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Templates
+            </h3>
+            <div className="space-y-1">
+              {NAV_SECTIONS.templates.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors',
+                    activeSection === item.id
+                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                      : 'hover:bg-daily-light text-gray-400 hover:text-gray-200'
+                  )}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      {/* Right Content */}
+      <main ref={contentRef} className="flex-1 overflow-hidden">
+        {/* Template Editor View (Full Screen) */}
+        {activeSection === 'session-template' && defaultTemplates && (
+          <TemplateEditor
+            title="Session Summary Template"
+            description="Template for summarizing individual Claude Code sessions"
+            currentValue={config.prompt_templates.session_summary}
+            defaultValue={
+              config.summary_language === 'zh'
+                ? defaultTemplates.session_summary_zh
+                : defaultTemplates.session_summary_en
+            }
+            availableVariables={TEMPLATE_VARIABLES.session_summary}
+            exampleData={EXAMPLE_DATA.session_summary}
+            onSave={async (value) => {
+              const updated = await updateConfig({
+                prompt_templates: { session_summary: value },
+              })
+              setConfig(updated)
+            }}
+            disabled={saving}
+          />
         )}
 
-        {/* Info Section (read-only) */}
-        <section className="bg-daily-dark/50 border border-gray-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-gray-400 mb-3">Read-only Info</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Storage Path</span>
-              <span className="text-gray-300 font-mono text-xs">{config.storage_path}</span>
+        {activeSection === 'daily-template' && defaultTemplates && (
+          <TemplateEditor
+            title="Daily Summary Template"
+            description="Template for generating daily digest from all sessions"
+            currentValue={config.prompt_templates.daily_summary}
+            defaultValue={
+              config.summary_language === 'zh'
+                ? defaultTemplates.daily_summary_zh
+                : defaultTemplates.daily_summary_en
+            }
+            availableVariables={TEMPLATE_VARIABLES.daily_summary}
+            exampleData={EXAMPLE_DATA.daily_summary}
+            onSave={async (value) => {
+              const updated = await updateConfig({
+                prompt_templates: { daily_summary: value },
+              })
+              setConfig(updated)
+            }}
+            disabled={saving}
+          />
+        )}
+
+        {activeSection === 'skill-template' && defaultTemplates && (
+          <TemplateEditor
+            title="Skill Extraction Template"
+            description="Template for extracting reusable skills from session summaries"
+            currentValue={config.prompt_templates.skill_extract}
+            defaultValue={
+              config.summary_language === 'zh'
+                ? defaultTemplates.skill_extract_zh
+                : defaultTemplates.skill_extract_en
+            }
+            availableVariables={TEMPLATE_VARIABLES.skill_extract}
+            exampleData={EXAMPLE_DATA.skill_extract}
+            onSave={async (value) => {
+              const updated = await updateConfig({
+                prompt_templates: { skill_extract: value },
+              })
+              setConfig(updated)
+            }}
+            disabled={saving}
+          />
+        )}
+
+        {activeSection === 'command-template' && defaultTemplates && (
+          <TemplateEditor
+            title="Command Extraction Template"
+            description="Template for extracting slash commands from session summaries"
+            currentValue={config.prompt_templates.command_extract}
+            defaultValue={
+              config.summary_language === 'zh'
+                ? defaultTemplates.command_extract_zh
+                : defaultTemplates.command_extract_en
+            }
+            availableVariables={TEMPLATE_VARIABLES.command_extract}
+            exampleData={EXAMPLE_DATA.command_extract}
+            onSave={async (value) => {
+              const updated = await updateConfig({
+                prompt_templates: { command_extract: value },
+              })
+              setConfig(updated)
+            }}
+            disabled={saving}
+          />
+        )}
+
+        {/* General Settings View (Scrollable) */}
+        {!activeSection.includes('template') && (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-6 py-8">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 mb-6">
+                  {error}
+                </div>
+              )}
+
+              {saveMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-green-400 mb-6"
+                >
+                  {saveMessage}
+                </motion.div>
+              )}
+
+              <div className="space-y-6">
+            {/* Summary Language */}
+            <section id="language" className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-orange-400 mb-4">Summary Language</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Choose the language for AI-generated summaries and digests
+              </p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="summary_language"
+                    value="en"
+                    checked={config.summary_language === 'en'}
+                    onChange={(e) => handleChange('summary_language', e.target.value)}
+                    disabled={saving}
+                    className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                  <span className="text-gray-200">English</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="summary_language"
+                    value="zh"
+                    checked={config.summary_language === 'zh'}
+                    onChange={(e) => handleChange('summary_language', e.target.value)}
+                    disabled={saving}
+                    className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                  <span className="text-gray-200">Chinese / 中文</span>
+                </label>
+              </div>
+            </section>
+
+            {/* Model Selection */}
+            <section id="model" className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-orange-400 mb-4">Summarization Model</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Choose the Claude model for generating summaries
+              </p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="model"
+                    value="sonnet"
+                    checked={config.model === 'sonnet'}
+                    onChange={(e) => handleChange('model', e.target.value)}
+                    disabled={saving}
+                    className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                  <span className="text-gray-200">Sonnet (smarter)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="model"
+                    value="haiku"
+                    checked={config.model === 'haiku'}
+                    onChange={(e) => handleChange('model', e.target.value)}
+                    disabled={saving}
+                    className="w-4 h-4 text-orange-500 bg-daily-dark border-gray-600 focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                  <span className="text-gray-200">Haiku (faster, cheaper)</span>
+                </label>
+              </div>
+            </section>
+
+            {/* Feature Toggles */}
+            <section id="features" className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-orange-400 mb-4">Features</h2>
+              <div className="space-y-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-gray-200">Enable Daily Summary</span>
+                    <p className="text-gray-500 text-sm">Generate daily digest from session summaries</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.enable_daily_summary}
+                    onChange={(e) => handleChange('enable_daily_summary', e.target.checked)}
+                    disabled={saving}
+                    className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-gray-200">Enable Extraction Hints</span>
+                    <p className="text-gray-500 text-sm">Suggest potential skills and commands to extract</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.enable_extraction_hints}
+                    onChange={(e) => handleChange('enable_extraction_hints', e.target.checked)}
+                    disabled={saving}
+                    className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-gray-200">Auto Digest</span>
+                    <p className="text-gray-500 text-sm">Automatically digest previous day's sessions on session start</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.auto_digest_enabled}
+                    onChange={(e) => handleChange('auto_digest_enabled', e.target.checked)}
+                    disabled={saving}
+                    className="w-5 h-5 text-orange-500 bg-daily-dark border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-daily-dark"
+                  />
+                </label>
+              </div>
+            </section>
+
+            {/* Digest Time */}
+            <section id="digest-time" className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-orange-400 mb-4">Digest Time</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Time to auto-digest previous day's sessions (format: HH:MM)
+              </p>
+              <input
+                type="time"
+                value={config.digest_time}
+                onChange={(e) => handleChange('digest_time', e.target.value)}
+                disabled={saving}
+                className="bg-daily-dark border border-gray-600 rounded-lg px-4 py-2 text-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+              />
+            </section>
+
+            {/* Author */}
+            <section id="author" className="bg-daily-card border border-orange-500/20 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-orange-400 mb-4">Author</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Author name for archive metadata (optional)
+              </p>
+              <input
+                type="text"
+                value={authorInput}
+                onChange={(e) => setAuthorInput(e.target.value)}
+                onBlur={(e) => {
+                  if (e.target.value !== (config.author || '')) {
+                    handleChange('author', e.target.value)
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur()
+                  }
+                }}
+                disabled={saving}
+                placeholder="Enter author name..."
+                className="w-full bg-daily-dark border border-gray-600 rounded-lg px-4 py-2 text-gray-200 placeholder-gray-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+              />
+            </section>
+
+            {/* Info Section (read-only) */}
+            <section id="info" className="bg-daily-dark/50 border border-gray-700 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-gray-400 mb-3">Storage Info</h2>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Storage Path</span>
+                  <span className="text-gray-300 font-mono text-xs">{config.storage_path}</span>
+                </div>
+              </div>
+              <p className="text-gray-600 text-xs mt-4">
+                Storage path can only be changed via CLI: <code className="bg-gray-800 px-1 rounded">daily config --set-storage &lt;path&gt;</code>
+              </p>
+            </section>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600 text-xs mt-4">
-            Storage path can only be changed via CLI: <code className="bg-gray-800 px-1 rounded">daily config --set-storage &lt;path&gt;</code>
-          </p>
-        </section>
-      </div>
+        )}
+      </main>
     </div>
   )
 }

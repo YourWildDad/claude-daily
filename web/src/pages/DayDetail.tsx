@@ -1,37 +1,75 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApi } from '../hooks/useApi'
-import type { DailySummary, Session } from '../hooks/useApi'
-import { SessionCard } from '../components/SessionCard'
+import type { DailySummary } from '../hooks/useApi'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { cn } from '../lib/utils'
 
 export function DayDetail() {
   const { date } = useParams<{ date: string }>()
+  const navigate = useNavigate()
   const [summary, setSummary] = useState<DailySummary | null>(null)
-  const [sessions, setSessions] = useState<Session[]>([])
+  const [digestContent, setDigestContent] = useState<string | null>(null)
   const [digestLoading, setDigestLoading] = useState(false)
   const [digestMessage, setDigestMessage] = useState<string | null>(null)
-  const { fetchDailySummary, fetchSessions, triggerDigest, loading, error } = useApi()
+  const [copySuccess, setCopySuccess] = useState(false)
+  const { fetchDailySummary, triggerDigest, loading, error } = useApi()
+
+  const handleOpenFile = () => {
+    if (!summary?.file_path) return
+    // Use file:// protocol to open the file in default editor
+    window.open(`file://${summary.file_path}`, '_blank')
+  }
+
+  const handleCopyContent = async () => {
+    if (!digestContent) return
+    try {
+      await navigator.clipboard.writeText(digestContent)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   useEffect(() => {
     if (!date) return
-    Promise.all([
-      fetchDailySummary(date).then(setSummary),
-      fetchSessions(date).then(setSessions),
-    ]).catch(console.error)
-  }, [date, fetchDailySummary, fetchSessions])
+    fetchDailySummary(date)
+      .then(summary => {
+        setSummary(summary)
+        // Combine all sections for digest-style rendering
+        const content = [
+          summary.overview && `## Overview\n\n${summary.overview}`,
+          summary.insights && `## Key Insights\n\n${summary.insights}`,
+          summary.tomorrow_focus && `## Tomorrow's Focus\n\n${summary.tomorrow_focus}`
+        ].filter(Boolean).join('\n\n')
+        setDigestContent(content || null)
+      })
+      .catch(console.error)
+  }, [date, fetchDailySummary])
 
-  const handleDigest = async () => {
+  const handleRegenerate = async () => {
     if (!date || digestLoading) return
     setDigestLoading(true)
     setDigestMessage(null)
     try {
       const response = await triggerDigest(date)
-      setDigestMessage(response.message)
+      setDigestMessage(`Daily summary regeneration started. Processing ${response.session_count} sessions.`)
+      // Reload summary after a short delay
+      setTimeout(() => {
+        fetchDailySummary(date).then(summary => {
+          setSummary(summary)
+          const content = [
+            summary.overview && `## Overview\n\n${summary.overview}`,
+            summary.insights && `## Key Insights\n\n${summary.insights}`,
+            summary.tomorrow_focus && `## Tomorrow's Focus\n\n${summary.tomorrow_focus}`
+          ].filter(Boolean).join('\n\n')
+          setDigestContent(content || null)
+        })
+      }, 2000)
     } catch (err) {
-      setDigestMessage(err instanceof Error ? err.message : 'Failed to start digest')
+      setDigestMessage(err instanceof Error ? err.message : 'Failed to regenerate daily summary')
     } finally {
       setDigestLoading(false)
     }
@@ -61,10 +99,60 @@ export function DayDetail() {
       </nav>
 
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-balance">{date}</h1>
-        {sessions.length > 0 && (
+        <h1 className="text-3xl font-bold text-balance">Daily Summary</h1>
+        <div className="flex items-center gap-2">
+          {/* Copy Button */}
+          {digestContent && (
+            <button
+              onClick={handleCopyContent}
+              className={cn(
+                'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+                'border border-orange-500/30 hover:border-orange-500/50',
+                'flex items-center gap-2'
+              )}
+              title="Copy markdown content"
+            >
+              {copySuccess ? (
+                <>
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Open File Button */}
+          {summary?.file_path && (
+            <button
+              onClick={handleOpenFile}
+              className={cn(
+                'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+                'border border-orange-500/30 hover:border-orange-500/50',
+                'flex items-center gap-2'
+              )}
+              title="Open file in editor"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <span>Open</span>
+            </button>
+          )}
+
+          {/* Regenerate Button */}
           <button
-            onClick={handleDigest}
+            onClick={handleRegenerate}
             disabled={digestLoading}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -90,13 +178,13 @@ export function DayDetail() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                   />
                 </svg>
-                Digesting...
+                Regenerating...
               </span>
             ) : (
-              'Digest'
+              'Regenerate'
             )}
           </button>
-        )}
+        </div>
       </div>
 
       {digestMessage && (
@@ -115,71 +203,33 @@ export function DayDetail() {
         </div>
       )}
 
-      {/* Daily Summary */}
-      {summary && summary.overview && (
-        <motion.section
+      {/* Daily Summary Content */}
+      {digestContent ? (
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="bg-daily-light rounded-lg p-6 border border-orange-500/20"
         >
-          <h2 className="text-xl font-semibold text-orange-400 mb-4">
-            Daily Overview
-          </h2>
-          <div className="bg-daily-light rounded-lg p-6 border border-orange-500/20">
-            <div className="markdown-content">
-              <MarkdownRenderer content={summary.overview} />
-            </div>
-
-            {summary.insights && (
-              <div className="mt-6 pt-6 border-t border-gray-800">
-                <h3 className="text-lg font-medium text-gray-200 mb-3">
-                  Key Insights
-                </h3>
-                <div className="markdown-content text-gray-400">
-                  <MarkdownRenderer content={summary.insights} />
-                </div>
-              </div>
-            )}
-
-            {summary.tomorrow_focus && (
-              <div className="mt-6 pt-6 border-t border-gray-800">
-                <h3 className="text-lg font-medium text-gray-200 mb-3">
-                  Tomorrow's Focus
-                </h3>
-                <div className="markdown-content text-gray-400">
-                  <MarkdownRenderer content={summary.tomorrow_focus} />
-                </div>
-              </div>
-            )}
+          <div className="markdown-content">
+            <MarkdownRenderer content={digestContent} />
           </div>
-        </motion.section>
+        </motion.div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg mb-4">No daily summary available for this date.</p>
+          <button
+            onClick={handleRegenerate}
+            disabled={digestLoading}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+              'border border-orange-500/30 hover:border-orange-500/50'
+            )}
+          >
+            Generate Summary
+          </button>
+        </div>
       )}
-
-      {/* Sessions */}
-      <section>
-        <h2 className="text-xl font-semibold text-gray-200 mb-4">
-          Sessions ({sessions.length})
-        </h2>
-
-        {sessions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No sessions for this day.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sessions.map((session, i) => (
-              <motion.div
-                key={session.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <SessionCard session={session} date={date!} />
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   )
 }

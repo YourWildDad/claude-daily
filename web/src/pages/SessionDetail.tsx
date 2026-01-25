@@ -4,11 +4,30 @@ import { motion } from 'framer-motion'
 import { useApi } from '../hooks/useApi'
 import type { SessionDetail as SessionDetailType } from '../hooks/useApi'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
+import { cn } from '../lib/utils'
 
 export function SessionDetail() {
   const { date, name } = useParams<{ date: string; name: string }>()
   const [session, setSession] = useState<SessionDetailType | null>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
   const { fetchSession, loading, error } = useApi()
+
+  const handleOpenFile = () => {
+    if (!session?.file_path) return
+    // Use file:// protocol to open the file in default editor
+    window.open(`file://${session.file_path}`, '_blank')
+  }
+
+  const handleCopyContent = async () => {
+    if (!session?.content) return
+    try {
+      await navigator.clipboard.writeText(session.content)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   useEffect(() => {
     if (!date || !name) return
@@ -40,7 +59,9 @@ export function SessionDetail() {
           {date}
         </Link>
         <span className="text-gray-600 mx-2">/</span>
-        <span className="text-orange-400 truncate">{decodeURIComponent(name || '')}</span>
+        <span className="text-gray-500">Sessions</span>
+        <span className="text-gray-600 mx-2">/</span>
+        <span className="text-orange-400 truncate">{session?.metadata?.title || decodeURIComponent(name || '')}</span>
       </nav>
 
       {error && (
@@ -56,9 +77,57 @@ export function SessionDetail() {
         >
           {/* Session Metadata */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-4 text-balance">
-              {session.metadata?.title || decodeURIComponent(name || '')}
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="text-2xl font-bold text-balance flex-1">
+                {session.metadata?.title || decodeURIComponent(name || '')}
+              </h1>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyContent}
+                  className={cn(
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+                    'border border-orange-500/30 hover:border-orange-500/50',
+                    'flex items-center gap-2'
+                  )}
+                  title="Copy markdown content"
+                >
+                  {copySuccess ? (
+                    <>
+                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleOpenFile}
+                  className={cn(
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30',
+                    'border border-orange-500/30 hover:border-orange-500/50',
+                    'flex items-center gap-2'
+                  )}
+                  title="Open file in editor"
+                >
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>Open</span>
+                </button>
+              </div>
+            </div>
 
             <div className="flex flex-wrap gap-4 text-sm text-gray-400">
               {session.metadata?.cwd && (

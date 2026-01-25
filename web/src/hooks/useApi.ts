@@ -12,6 +12,7 @@ export interface DailySummary {
   overview?: string
   insights?: string
   tomorrow_focus?: string
+  file_path?: string
 }
 
 export interface Session {
@@ -28,6 +29,7 @@ export interface SessionDetail {
     git_branch?: string
     duration?: string
   }
+  file_path?: string
 }
 
 export interface Job {
@@ -35,6 +37,7 @@ export interface Job {
   task_name: string
   status: string
   status_type: 'running' | 'completed' | 'failed'
+  job_type: 'session_end' | 'auto_summarize' | 'manual'
   started_at: string
   elapsed: string
 }
