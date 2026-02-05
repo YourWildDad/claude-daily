@@ -1,8 +1,49 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useCallback } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../lib/utils'
 import { ThemeToggle } from './ThemeToggle'
 
+const TABS = ['/', '/jobs', '/settings'] as const
+
 export function Layout() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Get current tab index based on pathname
+  const getCurrentTabIndex = useCallback(() => {
+    const path = location.pathname
+    if (path === '/' || path.startsWith('/day')) return 0
+    if (path === '/jobs') return 1
+    if (path === '/settings') return 2
+    return 0
+  }, [location.pathname])
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+
+      const currentIndex = getCurrentTabIndex()
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : TABS.length - 1
+        navigate(TABS[prevIndex])
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        const nextIndex = currentIndex < TABS.length - 1 ? currentIndex + 1 : 0
+        navigate(TABS[nextIndex])
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [getCurrentTabIndex, navigate])
+
   return (
     <div className="min-h-dvh bg-white dark:bg-daily-dark text-gray-900 dark:text-gray-100 transition-colors">
       {/* Header */}
